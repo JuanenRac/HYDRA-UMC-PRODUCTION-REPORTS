@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hydra-umc-production-reports"
+version = "0.0.2"
+description = "Automated KPI and OEE (Overall Equipment Effectiveness) reporting engine for plant managers - bottleneck analysis and quality traceability built from HYDRA-UMC-DATALAKE history."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE.md" }
+authors = [
+    { name = "JuanenRac (Electro Hobby 3D)", email = "electrohobby3d@gmail.com" },
+]
+keywords = ["hydra-umc", "oee", "kpi", "reporting", "production", "analytics"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.urls]
+Homepage = "https://github.com/JuanenRac/HYDRA-UMC-PRODUCTION-REPORTS"
+
+[project.scripts]
+hydra-umc-production-reports = "hydra_umc_production_reports.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
