@@ -59,9 +59,9 @@ flowchart LR
 
 ## 📂 リポジトリ構成
 
-純粋なソフトウェアサービス（レポート生成）——独自のハードウェア/ファーム
-ウェア/OS を持たず、テンプレートから省略されています（エコシステムの
-慣例は `SONNET/_papelera/` を参照）。
+純粋なソフトウェアサービス（レポート生成）であり、独自のハードウェア、
+ファームウェア、OS はありません。これらのディレクトリはリポジトリ構造
+ポリシーに従って省略されています。
 
 ```text
 HYDRA-UMC-PRODUCTION-REPORTS/
@@ -209,3 +209,14 @@ curl "http://localhost:8099/reports/availability?sourceId=robot-1&kind=motor_tem
 
 ## 📜 ライセンス
 GPL-3.0 —— 詳細は LICENSE を参照してください。
+
+## 🛠️ BUILD & RUN
+
+リリースビルドの前に、バージョンを変更しないビルドチェックを使用してください。
+
+| 操作 | Windows | Linux / macOS |
+|---|---|---|
+| ビルドチェック（バージョンと CHANGELOG を変更しない） | `build-test.bat` | `./build-test.sh` |
+| 実行 / 開発（提供されている場合） | `run*.bat` または `dev*.bat` | `./run*.sh` または `./dev*.sh` |
+
+`build-test.bat` と `build-test.sh` は、`hydra-umc.project.json` をインクリメントせず、`CHANGELOG.md` も変更せずにプロジェクトのスタックをコンパイルまたは検証します。通常のコンパイラ出力だけが作成される場合があります。既存の `build*.bat`、`build*.sh`、`run*`、`dev*` は、各プロジェクト固有のバージョン化または実行時の動作を維持します。その動作が必要な場合はそれらを使用してください。
