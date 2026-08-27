@@ -74,12 +74,16 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   ├── api.py                  # 実際の HTTP API（GET /reports/oee、/reports/availability、/stats）
 │   └── main.py                 # エントリポイント - 実際の HTTP サーバーを起動
 ├── tests/                    # 実際のテスト。偽の DATALAKE に対する往復テストを含む
+├── docs/
+│   └── API.md                 # 本物の HTTP エンドポイントリファレンス（リクエスト、レスポンス、ステータスコード）
 ├── pyproject.toml            # パッケージメタデータ + [dev] extras（pytest）
 ├── bump_version.py           # オドメーター式バージョンインクリメント（ビルドが実行）
 ├── build.sh / build.bat      # 実際のビルド：venv + editable インストール + 実際のテストスイート
 ├── run.sh / run.bat          # 実際の実行：HTTP API を起動
 └── README.md
 ```
+
+完全な HTTP エンドポイントリファレンスは [`docs/API.md`](docs/API.md) を参照。
 
 ---
 

@@ -20,6 +20,19 @@ semantic-versioning judgment calls:
 
 ---
 
+## Documentation - Real HTTP API reference
+
+- **`docs/API.md`** (new) - every real endpoint (`GET /reports/oee`,
+  `GET /reports/availability`, `GET /stats`) documented from the actual
+  handler code in `api.py`: required query params, real example
+  responses with every field's exact meaning (from `oee.py`/
+  `availability.py`), and the `502` vs `400` error distinction (DATALAKE
+  unreachable vs. bad input). Cross-checked field-by-field against
+  `tests/test_api.py`'s real assertions (30/30 tests passing).
+  Documentation-only - no code changed, no version bump.
+
+---
+
 ## [0.0.2] - Real OEE/availability reporting, real integration with HYDRA-UMC-DATALAKE
 
 - **`src/hydra_umc_production_reports/oee.py`** - real, standard industrial OEE formula (Availability x Performance x Quality), computed from a real list of `ProductionEvent` records. `Performance` and `Availability` are explicitly clamped to `[0, 1]` so noisy/optimistic inputs (a real cycle running faster than a conservative "ideal" figure, or operating time exceeding a mis-set planned window) never report a misleading >100%. Raises `OEEError` for real, unrepresentable inputs (zero events, non-positive planned time or ideal cycle time) instead of returning a misleading number.

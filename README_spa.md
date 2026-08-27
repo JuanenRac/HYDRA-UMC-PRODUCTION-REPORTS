@@ -68,12 +68,16 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   ├── api.py                  # API HTTP real (GET /reports/oee, /reports/availability, /stats)
 │   └── main.py                 # Punto de entrada - arranca el servidor HTTP real
 ├── tests/                    # Tests reales, incluyendo round-trips contra un DATALAKE falso
+├── docs/
+│   └── API.md                 # Referencia real de endpoints HTTP (peticiones, respuestas, codigos de estado)
 ├── pyproject.toml            # Metadatos del paquete + extras [dev] (pytest)
 ├── bump_version.py           # Incremento de versión tipo cuentakilómetros (lo ejecuta el build)
 ├── build.sh / build.bat      # Build real: venv + instalación editable + suite de tests real
 ├── run.sh / run.bat          # Ejecución real: arranca la API HTTP
 └── README.md
 ```
+
+Ver [`docs/API.md`](docs/API.md) para la referencia completa de endpoints HTTP.
 
 ---
 

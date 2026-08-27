@@ -71,12 +71,16 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   ├── api.py                  # 真实的 HTTP API（GET /reports/oee、/reports/availability、/stats）
 │   └── main.py                 # 入口点——启动真实的 HTTP 服务器
 ├── tests/                    # 真实测试，包括针对伪造 DATALAKE 的往返测试
+├── docs/
+│   └── API.md                 # 真实的 HTTP 端点参考（请求、响应、状态码）
 ├── pyproject.toml            # 包元数据 + [dev] extras（pytest）
 ├── bump_version.py           # 里程表式版本递增（由构建运行）
 ├── build.sh / build.bat      # 真实构建：venv + 可编辑安装 + 真实测试套件
 ├── run.sh / run.bat          # 真实运行：启动 HTTP API
 └── README.md
 ```
+
+完整的 HTTP 端点参考见 [`docs/API.md`](docs/API.md)。
 
 ---
 
