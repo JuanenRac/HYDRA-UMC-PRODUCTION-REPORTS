@@ -11,7 +11,14 @@ it from real HYDRA-UMC-DATALAKE history.
 """
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
+
+# Bumped only if the OEE formula itself changes - a report's own
+# `formula_version` field lets a caller tell "this CSV/PDF came from the
+# same math as that one" apart from "the plant changed how OEE is
+# computed between these two exports" (promotion audit line 653).
+FORMULA_VERSION = "oee-v1"
 
 
 class OEEError(ValueError):
@@ -42,6 +49,19 @@ class OEEReport:
     total_count: int
     good_count: int
     operating_time_s: float
+    formula_version: str
+    input_fingerprint: str
+
+
+def _fingerprint_events(events: list[ProductionEvent]) -> str:
+    """A real, deterministic fingerprint of the exact production events
+    that produced this report - same events (any order) -> same
+    fingerprint; any real difference in the input -> a different one.
+    Not a security hash, just traceability (audit line 654)."""
+    canonical = "\n".join(
+        f"{e.timestamp_ms}|{int(e.good)}|{e.cycle_time_s!r}" for e in sorted(events, key=lambda e: e.timestamp_ms)
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def compute_oee(
@@ -92,4 +112,6 @@ def compute_oee(
         total_count=total_count,
         good_count=good_count,
         operating_time_s=operating_time_s,
+        formula_version=FORMULA_VERSION,
+        input_fingerprint=_fingerprint_events(events),
     )

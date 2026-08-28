@@ -33,6 +33,15 @@ semantic-versioning judgment calls:
 
 ---
 
+## [0.0.3] - Shift/day boundaries, versioned formulas with real traceability, reproducible CSV export
+
+- **`shift.py`** (new) - a real, single source of truth for where a shift or calendar day starts/ends, so two reports can't silently disagree about the window they both claim to describe (the exact risk the promotion audit flagged). `day_window_ms()`/`ShiftSchedule`/`shift_window_ms()`/`shift_index_for_timestamp()`: real UTC-ms boundaries for a fixed timezone offset (DST intentionally not handled - see `mejoras_futuras.txt`), a real night shift correctly crossing midnight into the next calendar day, and a real inverse lookup (which day/shift a timestamp falls into) proven to round-trip through every shift of a schedule.
+- **Real formula versioning + input traceability** (`oee.py`/`availability.py`) - every `OEEReport`/`AvailabilityReport` now carries `formula_version` (`"oee-v1"`/`"availability-v1"`, bumped only if the formula itself changes) and a real `input_fingerprint` - a sha256 over the exact, order-independent input data (production events / sample timestamps) that produced it. Two reports built from the same real data always get the same fingerprint; any real difference in the input changes it. Both fields are additive on `GET /reports/oee`/`GET /reports/availability`.
+- **`export.py`** (new) + **`GET /reports/oee/export`**, **`GET /reports/availability/export`** - a real, byte-for-byte reproducible CSV rendering of either report: fixed field order, fixed float formatting, and a header recording the real range (`sourceId`/`startMs`/`endMs`) and any filters, so the file is self-describing even detached from the request that produced it. Calling either export endpoint twice with identical parameters against identical DATALAKE history returns identical bytes - proven by a real test, not assumed.
+- 27 new tests (`tests/test_shift.py`, `tests/test_export.py` new, plus additions to `test_oee.py`/`test_availability.py`/`test_api.py`) = 57 total.
+- Real verification beyond the test suite: ran a real `ReportsServer` against a real (fake) DATALAKE, fetched both the JSON and CSV-export forms of a real OEE report over an actual socket, and confirmed the two CSV fetches were byte-identical.
+- What's still not real, on purpose - see `mejoras_futuras.txt`: plant/cell authorization before querying aggregates, PDF export, and DST-aware timezones.
+
 ## [0.0.2] - Real OEE/availability reporting, real integration with HYDRA-UMC-DATALAKE
 
 - **`src/hydra_umc_production_reports/oee.py`** - real, standard industrial OEE formula (Availability x Performance x Quality), computed from a real list of `ProductionEvent` records. `Performance` and `Availability` are explicitly clamped to `[0, 1]` so noisy/optimistic inputs (a real cycle running faster than a conservative "ideal" figure, or operating time exceeding a mis-set planned window) never report a misleading >100%. Raises `OEEError` for real, unrepresentable inputs (zero events, non-positive planned time or ideal cycle time) instead of returning a misleading number.

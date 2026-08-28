@@ -27,6 +27,9 @@ Calcula el **OEE (Efectividad General del Equipo)** de todo el enjambre, identif
 * 📑 **Informes Automatizados:** Resúmenes diarios, semanales y mensuales en PDF/CSV enviados a los gerentes.
 * 🛠️ **Análisis de Cuellos de Botella:** Identifica qué robots o herramientas están causando retrasos en la cola de misiones.
 * 🌡️ **Trazabilidad de Calidad:** Vincula cada producto final a sus logs de ensamblaje específicos (térmicos, visuales, mecánicos).
+* 🕐 **Límites de Turno/Día:** `shift.py` da a cada informe una única fuente real de verdad sobre dónde empieza y termina un turno o día natural - incluyendo un turno de noche real que cruza la medianoche. *(implementado)*
+* 🧾 **Fórmulas Versionadas + Trazabilidad:** Cada informe lleva su `formula_version` real y una `input_fingerprint` sha256 sobre los datos exactos que lo produjeron. *(implementado)*
+* 📤 **Exportación CSV Reproducible:** `GET /reports/{oee,availability}/export` - salida idéntica byte a byte para entradas idénticas, no solo "suficientemente parecida". *(implementado)*
 
 ---
 
@@ -50,6 +53,9 @@ flowchart LR
 * **La disponibilidad funciona contra CUALQUIER stream de telemetría existente, a propósito.** A diferencia del OEE, `availability.py` no necesita en absoluto la convención `production_event` - toma cualquier serie de timestamps ya presente en DATALAKE (p. ej. muestras `motor_temp` que HYDRA-UMC-TELEMETRY-COLLECTOR ya escribe) y marca como downtime real un hueco entre muestras consecutivas mayor que `expected_interval_ms x gap_factor`. Esto es justo lo que hoy le permite a este proyecto "hablar" con sus hermanos de telemetría, antes de que ningún proyecto escriba datos `production_event` de verdad.
 * **Performance y Availability están acotados a `[0, 1]`.** Un ciclo real puede ir más rápido que una cifra "ideal" conservadora, o el tiempo operativo puede superar una ventana planificada mal configurada; reportar >100% sería defendible aritméticamente pero engañoso en la práctica, así que ambos se limitan.
 * **Los campos `production_event` sin emparejar se cuentan y se reportan, nunca se rellenan en silencio.** Si una lectura `"good"` no tiene un `"cycleTimeS"` emparejado en el mismo timestamp exacto (una escritura parcial/malformada), se excluye y el número de lecturas excluidas se incluye en el error/respuesta en vez de asumir un tiempo de ciclo de 0s, lo que corrompería la cifra de Performance.
+* **Por qué `shift.py` es un módulo separado, no matemática en línea dentro de `oee.py`/`availability.py`.** Dos informes que discrepan silenciosamente sobre dónde corta un turno o un día natural producen dos cifras distintas, ambas defendibles, para la misma ventana real - exactamente la contradicción que señaló la auditoría de promoción. Hacer de los límites de turno/día un módulo propio, real y probado (con un turno de noche real que cruza la medianoche, y una búsqueda inversa real de timestamp a turno) da a cada informe la misma fuente de verdad en vez de que cada llamador la re-derive por su cuenta.
+* **Por qué `formula_version` e `input_fingerprint` están en el informe, no solo en el CSV.** Un informe consumido como JSON (por un dashboard, otro servicio) merece la misma trazabilidad que uno exportado a un archivo - ambos campos son aditivos sobre las respuestas ya existentes de `GET /reports/oee`/`GET /reports/availability`, no algo visible solo en la salida de `export.py`.
+* **Por qué la exportación CSV es un endpoint nuevo, no un flag `?format=csv` en las rutas existentes.** Mantener `GET /reports/oee`/`GET /reports/availability` intactos (siguen siendo reales, siguen siendo JSON, siguen siendo exactamente lo que `tests/test_api.py` ya verificaba) permitió añadir la función de exportación y demostrar que es reproducible sin tocar una sola respuesta ya probada.
 
 ---
 
@@ -65,9 +71,11 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   ├── oee.py                 # Fórmula OEE real (Disponibilidad x Rendimiento x Calidad)
 │   ├── availability.py        # Cálculo real de downtime a partir de huecos de telemetría
 │   ├── reports.py             # Orquestación: DatalakeClient -> oee.py / availability.py
-│   ├── api.py                  # API HTTP real (GET /reports/oee, /reports/availability, /stats)
+│   ├── shift.py                # Cálculo real de límites de turno/día (fuente de verdad)
+│   ├── export.py               # Exportación CSV real, reproducible byte a byte
+│   ├── api.py                  # API HTTP real (GET /reports/oee, /reports/availability, /stats, /export)
 │   └── main.py                 # Punto de entrada - arranca el servidor HTTP real
-├── tests/                    # Tests reales, incluyendo round-trips contra un DATALAKE falso
+├── tests/                    # Tests reales: matemática de OEE/disponibilidad/turno/exportación, round-trips contra un DATALAKE falso
 ├── docs/
 │   └── API.md                 # Referencia real de endpoints HTTP (peticiones, respuestas, codigos de estado)
 ├── pyproject.toml            # Metadatos del paquete + extras [dev] (pytest)

@@ -13,7 +13,12 @@ interval is real, honest evidence the source was down, not just quiet.
 """
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
+
+# Bumped only if the availability formula itself changes - see
+# oee.FORMULA_VERSION for the same reasoning (promotion audit line 653).
+FORMULA_VERSION = "availability-v1"
 
 
 class AvailabilityError(ValueError):
@@ -37,6 +42,16 @@ class AvailabilityReport:
     downtime_periods: list[DowntimePeriod]
     downtime_ms: int
     availability: float  # 0.0-1.0
+    formula_version: str
+    input_fingerprint: str
+
+
+def _fingerprint_timestamps(timestamps_ms: list[int]) -> str:
+    """A real, deterministic fingerprint of the exact (window-filtered)
+    sample timestamps that produced this report - see oee's own
+    _fingerprint_events for the same reasoning."""
+    canonical = "\n".join(str(t) for t in sorted(timestamps_ms))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def compute_availability(
@@ -89,4 +104,6 @@ def compute_availability(
         downtime_periods=downtime_periods,
         downtime_ms=downtime_ms,
         availability=availability,
+        formula_version=FORMULA_VERSION,
+        input_fingerprint=_fingerprint_timestamps(points),
     )

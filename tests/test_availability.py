@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from hydra_umc_production_reports.availability import AvailabilityError, compute_availability
+from hydra_umc_production_reports.availability import FORMULA_VERSION, AvailabilityError, compute_availability
 
 
 def test_continuous_stream_is_fully_available() -> None:
@@ -72,3 +72,21 @@ def test_rejects_invalid_window() -> None:
 def test_rejects_non_positive_expected_interval() -> None:
     with pytest.raises(AvailabilityError):
         compute_availability([1, 2], window_start_ms=0, window_end_ms=100, expected_interval_ms=0.0)
+
+
+def test_report_carries_the_real_formula_version() -> None:
+    report = compute_availability([0, 1000], window_start_ms=0, window_end_ms=1000, expected_interval_ms=1000.0)
+    assert report.formula_version == FORMULA_VERSION == "availability-v1"
+
+
+def test_input_fingerprint_is_deterministic_regardless_of_timestamp_order() -> None:
+    timestamps = [0, 2000, 4000, 6000, 8000, 10000]
+    report_a = compute_availability(timestamps, window_start_ms=0, window_end_ms=10000, expected_interval_ms=1000.0)
+    report_b = compute_availability(list(reversed(timestamps)), window_start_ms=0, window_end_ms=10000, expected_interval_ms=1000.0)
+    assert report_a.input_fingerprint == report_b.input_fingerprint
+
+
+def test_input_fingerprint_differs_for_real_different_input() -> None:
+    report_a = compute_availability([0, 1000, 2000], window_start_ms=0, window_end_ms=10000, expected_interval_ms=1000.0)
+    report_b = compute_availability([0, 1000, 3000], window_start_ms=0, window_end_ms=10000, expected_interval_ms=1000.0)
+    assert report_a.input_fingerprint != report_b.input_fingerprint

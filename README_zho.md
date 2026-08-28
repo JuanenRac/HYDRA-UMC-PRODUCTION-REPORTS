@@ -29,6 +29,9 @@
 * 📑 **自动化报告：** 发送给管理者的每日、每周、每月 PDF/CSV 摘要。
 * 🛠️ **瓶颈分析：** 识别哪些机器人或工具正在造成任务队列延迟。
 * 🌡️ **质量可追溯性：** 将每个最终产品与其特定的装配日志（热、视觉、机械）关联起来。
+* 🕐 **班次/日边界：** `shift.py` 为每份报告提供了唯一的真实基准，用于确定班次或自然日的起止时间——包括真实的跨越午夜的夜班。*（已实现）*
+* 🧾 **版本化公式 + 可追溯性：** 每份报告都携带其真实的 `formula_version`，以及基于产生该报告的确切数据计算的 sha256 `input_fingerprint`。*（已实现）*
+* 📤 **可复现的 CSV 导出：** `GET /reports/{oee,availability}/export` —— 对相同输入产生逐字节完全一致的输出，而不仅仅是“足够接近”。*（已实现）*
 
 ---
 
@@ -52,6 +55,9 @@ flowchart LR
 * **可用性计算故意针对任意已存在的遥测流生效。** 与 OEE 不同，`availability.py` 完全不需要 `production_event` 约定——它使用 DATALAKE 中已存在的任意时间戳序列（例如 HYDRA-UMC-TELEMETRY-COLLECTOR 已经写入的 `motor_temp` 样本），并将连续样本之间大于 `expected_interval_ms x gap_factor` 的间隔标记为真实的停机时间。这正是让本项目在任何项目写入真实 `production_event` 数据之前，就已经能与其遥测“兄弟项目”真正“对话”的原因。
 * **Performance 和 Availability 都被限制在 `[0, 1]` 之间。** 真实周期可能比一个保守的“理想”数值更快，或者运行时间可能超出配置有误的计划窗口；报告 >100% 在算术上是站得住脚的，但在实践中具有误导性，因此两者都会被截断。
 * **未匹配的 `production_event` 字段会被计数并报告，绝不会被静默地赋予默认值。** 如果某条 `"good"` 记录在完全相同的时间戳上没有对应的 `"cycleTimeS"`（一次部分/格式错误的写入），它会被排除在外，被排除的条数会包含在错误/响应中，而不是假设周期时间为 0 秒——那样会破坏 Performance 数值的准确性。
+* **为何 `shift.py` 是一个独立模块，而不是 `oee.py`/`availability.py` 中的内联计算。** 两份报告若在班次或自然日的切分点上悄悄产生分歧，就会对同一个真实时间窗口给出两个不同、却又都能自圆其说的数字——这正是晋升审计所指出的矛盾。将班次/日边界做成一个独立的、真实的、经过测试的模块（包含真实的跨越午夜的夜班，以及真实的时间戳到班次的反向查找），可以让每份报告共享同一个真实基准，而不是让每个调用方各自重新推导。
+* **为何 `formula_version` 和 `input_fingerprint` 在报告本身上，而不仅仅在 CSV 中。** 以 JSON 形式被消费的报告（被仪表盘、其他服务读取）应当享有与导出到文件的报告同等的可追溯性——这两个字段是对现有 `GET /reports/oee`/`GET /reports/availability` 响应的增量添加，而不是只在 `export.py` 输出中才能看到的东西。
+* **为何 CSV 导出是一个新端点，而不是在现有路由上加一个 `?format=csv` 标志。** 保持 `GET /reports/oee`/`GET /reports/availability` 不变（依旧真实、依旧是 JSON、依旧完全符合 `tests/test_api.py` 已有的断言），意味着可以在不碰触任何已测试响应的前提下添加导出功能，并证明其可复现性。
 
 ---
 
@@ -68,9 +74,11 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   ├── oee.py                 # 真实的 OEE 公式（可用性 x 性能 x 质量）
 │   ├── availability.py        # 基于遥测间隔的真实停机计算
 │   ├── reports.py             # 编排层：DatalakeClient -> oee.py / availability.py
-│   ├── api.py                  # 真实的 HTTP API（GET /reports/oee、/reports/availability、/stats）
+│   ├── shift.py                # 真实的班次/日边界计算（真实基准）
+│   ├── export.py               # 真实的、逐字节可复现的 CSV 导出
+│   ├── api.py                  # 真实的 HTTP API（GET /reports/oee、/reports/availability、/stats、/export）
 │   └── main.py                 # 入口点——启动真实的 HTTP 服务器
-├── tests/                    # 真实测试，包括针对伪造 DATALAKE 的往返测试
+├── tests/                    # 真实测试：OEE/可用性/班次/导出的计算逻辑，针对伪造 DATALAKE 的往返测试
 ├── docs/
 │   └── API.md                 # 真实的 HTTP 端点参考（请求、响应、状态码）
 ├── pyproject.toml            # 包元数据 + [dev] extras（pytest）

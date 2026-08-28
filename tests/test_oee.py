@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from hydra_umc_production_reports.oee import OEEError, ProductionEvent, compute_oee
+from hydra_umc_production_reports.oee import FORMULA_VERSION, OEEError, ProductionEvent, compute_oee
 
 
 def test_compute_oee_hand_checkable_example() -> None:
@@ -73,3 +73,25 @@ def test_compute_oee_all_defective_gives_zero_quality_and_oee() -> None:
     report = compute_oee(events, planned_time_s=10.0, ideal_cycle_time_s=1.0)
     assert report.quality == 0.0
     assert report.oee == 0.0
+
+
+def test_report_carries_the_real_formula_version() -> None:
+    events = [ProductionEvent(timestamp_ms=i, good=True, cycle_time_s=1.0) for i in range(3)]
+    report = compute_oee(events, planned_time_s=10.0, ideal_cycle_time_s=1.0)
+    assert report.formula_version == FORMULA_VERSION == "oee-v1"
+
+
+def test_input_fingerprint_is_deterministic_regardless_of_event_order() -> None:
+    events = [ProductionEvent(timestamp_ms=i, good=(i % 2 == 0), cycle_time_s=1.5) for i in range(5)]
+    report_a = compute_oee(events, planned_time_s=10.0, ideal_cycle_time_s=1.0)
+    report_b = compute_oee(list(reversed(events)), planned_time_s=10.0, ideal_cycle_time_s=1.0)
+    assert report_a.input_fingerprint == report_b.input_fingerprint
+
+
+def test_input_fingerprint_differs_for_real_different_input() -> None:
+    events_a = [ProductionEvent(timestamp_ms=i, good=True, cycle_time_s=1.0) for i in range(3)]
+    events_b = [ProductionEvent(timestamp_ms=i, good=True, cycle_time_s=1.0) for i in range(3)]
+    events_b[0] = ProductionEvent(timestamp_ms=0, good=False, cycle_time_s=1.0)
+    report_a = compute_oee(events_a, planned_time_s=10.0, ideal_cycle_time_s=1.0)
+    report_b = compute_oee(events_b, planned_time_s=10.0, ideal_cycle_time_s=1.0)
+    assert report_a.input_fingerprint != report_b.input_fingerprint

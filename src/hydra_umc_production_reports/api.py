@@ -18,6 +18,7 @@ from urllib.parse import parse_qs, urlparse
 
 from .availability import AvailabilityError
 from .datalake_client import DatalakeClient, DatalakeError
+from .export import export_availability_csv, export_oee_csv
 from .oee import OEEError
 from .reports import ReportError, availability_from_datalake, oee_from_datalake
 
@@ -26,6 +27,15 @@ def _write_json(handler: BaseHTTPRequestHandler, status: int, payload: object) -
     body = json.dumps(payload, default=lambda o: asdict(o) if hasattr(o, "__dataclass_fields__") else str(o)).encode("utf-8")
     handler.send_response(status)
     handler.send_header("Content-Type", "application/json")
+    handler.send_header("Content-Length", str(len(body)))
+    handler.end_headers()
+    handler.wfile.write(body)
+
+
+def _write_csv(handler: BaseHTTPRequestHandler, status: int, csv_text: str) -> None:
+    body = csv_text.encode("utf-8")
+    handler.send_response(status)
+    handler.send_header("Content-Type", "text/csv")
     handler.send_header("Content-Length", str(len(body)))
     handler.end_headers()
     handler.wfile.write(body)
@@ -51,21 +61,29 @@ class Handler(BaseHTTPRequestHandler):
         params = _query_params(self)
         if path == "/reports/oee":
             self._handle_oee(params)
+        elif path == "/reports/oee/export":
+            self._handle_oee_export(params)
         elif path == "/reports/availability":
             self._handle_availability(params)
+        elif path == "/reports/availability/export":
+            self._handle_availability_export(params)
         elif path == "/stats":
             _write_json(self, 200, {"datalakeUrl": self.server.client.base_url})
         else:
             _write_error(self, 404, "not found")
 
-    def _handle_oee(self, params: dict[str, str]) -> None:
+    def _build_oee_report(self, params: dict[str, str]):
+        """Shared real query+compute for both the JSON and CSV-export OEE
+        routes, so they can never disagree about what was actually asked
+        for. Writes the real error response itself and returns None on
+        any failure - callers must check for that before proceeding."""
         required = {"sourceId", "start", "end", "plannedTimeS", "idealCycleTimeS"}
         missing = required - params.keys()
         if missing:
             _write_error(self, 400, f"missing required params: {sorted(missing)}")
-            return
+            return None
         try:
-            report = oee_from_datalake(
+            return oee_from_datalake(
                 self.server.client,
                 source_id=params["sourceId"],
                 start_ms=int(params["start"]),
@@ -75,20 +93,36 @@ class Handler(BaseHTTPRequestHandler):
             )
         except DatalakeError as e:
             _write_error(self, 502, f"could not read from DATALAKE: {e}")
-            return
+            return None
         except (ReportError, OEEError, ValueError) as e:
             _write_error(self, 400, str(e))
+            return None
+
+    def _handle_oee(self, params: dict[str, str]) -> None:
+        report = self._build_oee_report(params)
+        if report is None:
             return
         _write_json(self, 200, report)
 
-    def _handle_availability(self, params: dict[str, str]) -> None:
+    def _handle_oee_export(self, params: dict[str, str]) -> None:
+        report = self._build_oee_report(params)
+        if report is None:
+            return
+        csv_text = export_oee_csv(report, source_id=params["sourceId"], start_ms=int(params["start"]), end_ms=int(params["end"]))
+        _write_csv(self, 200, csv_text)
+
+    def _build_availability_report(self, params: dict[str, str]):
+        """Shared real query+compute for both the JSON and CSV-export
+        availability routes - see _build_oee_report for the same
+        reasoning. Writes the real error response itself and returns
+        None on any failure."""
         required = {"sourceId", "kind", "field", "start", "end", "expectedIntervalMs"}
         missing = required - params.keys()
         if missing:
             _write_error(self, 400, f"missing required params: {sorted(missing)}")
-            return
+            return None
         try:
-            report = availability_from_datalake(
+            return availability_from_datalake(
                 self.server.client,
                 source_id=params["sourceId"],
                 kind=params["kind"],
@@ -100,11 +134,25 @@ class Handler(BaseHTTPRequestHandler):
             )
         except DatalakeError as e:
             _write_error(self, 502, f"could not read from DATALAKE: {e}")
-            return
+            return None
         except (AvailabilityError, ValueError) as e:
             _write_error(self, 400, str(e))
+            return None
+
+    def _handle_availability(self, params: dict[str, str]) -> None:
+        report = self._build_availability_report(params)
+        if report is None:
             return
         _write_json(self, 200, report)
+
+    def _handle_availability_export(self, params: dict[str, str]) -> None:
+        report = self._build_availability_report(params)
+        if report is None:
+            return
+        csv_text = export_availability_csv(
+            report, source_id=params["sourceId"], start_ms=int(params["start"]), end_ms=int(params["end"])
+        )
+        _write_csv(self, 200, csv_text)
 
 
 class ReportsServer(ThreadingHTTPServer):
