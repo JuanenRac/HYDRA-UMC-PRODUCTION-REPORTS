@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hydra-umc-production-reports"
-version = "0.0.3"
+version = "0.0.4"
 description = "Automated KPI and OEE (Overall Equipment Effectiveness) reporting engine for plant managers - bottleneck analysis and quality traceability built from HYDRA-UMC-DATALAKE history."
 readme = "README.md"
 requires-python = ">=3.10"
