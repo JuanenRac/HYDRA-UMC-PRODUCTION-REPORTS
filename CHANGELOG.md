@@ -20,6 +20,14 @@ semantic-versioning judgment calls:
 
 ---
 
+## Unreleased - unambiguous report queries
+
+- Rejects repeated query parameters with `400`. Report inputs such as
+  `sourceId`, time boundaries and metric fields can no longer be silently
+  selected from a duplicated URL value.
+
+---
+
 ## Documentation - Real HTTP API reference
 
 - **`docs/API.md`** (new) - every real endpoint (`GET /reports/oee`,

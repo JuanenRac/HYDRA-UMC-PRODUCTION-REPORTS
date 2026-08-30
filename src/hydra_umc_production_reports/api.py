@@ -47,7 +47,11 @@ def _write_error(handler: BaseHTTPRequestHandler, status: int, message: str) -> 
 
 def _query_params(handler: BaseHTTPRequestHandler) -> dict[str, str]:
     parsed = urlparse(handler.path)
-    return {k: v[0] for k, v in parse_qs(parsed.query).items()}
+    values = parse_qs(parsed.query, keep_blank_values=True)
+    repeated = sorted(key for key, value in values.items() if len(value) != 1)
+    if repeated:
+        raise ValueError(f"query parameters must occur exactly once: {repeated}")
+    return {key: value[0] for key, value in values.items()}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -58,7 +62,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
-        params = _query_params(self)
+        try:
+            params = _query_params(self)
+        except ValueError as error:
+            _write_error(self, 400, str(error))
+            return
         if path == "/reports/oee":
             self._handle_oee(params)
         elif path == "/reports/oee/export":

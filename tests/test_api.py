@@ -138,6 +138,18 @@ def test_oee_endpoint_returns_400_for_missing_params() -> None:
             assert "error" in body
 
 
+def test_repeated_query_parameter_is_rejected_not_silently_chosen() -> None:
+    with running_fake_datalake() as (datalake_url, _fake):
+        with running_reports_server(datalake_url) as base_url:
+            url = (
+                f"{base_url}/reports/oee?sourceId=robot-1&sourceId=robot-2&start=0&end=1000"
+                "&plannedTimeS=10&idealCycleTimeS=1"
+            )
+            status, body = _get(url)
+    assert status == 400
+    assert "sourceId" in body["error"]
+
+
 def test_oee_endpoint_returns_502_when_datalake_unreachable() -> None:
     client = DatalakeClient("http://127.0.0.1:1", timeout_s=1.0)
     server = ReportsServer(("127.0.0.1", 0), client)

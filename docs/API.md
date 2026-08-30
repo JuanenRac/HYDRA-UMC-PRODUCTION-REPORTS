@@ -17,6 +17,9 @@ Run `hydra-umc-production-reports --help` for the exact default port/flags.
 
 All responses are `application/json`. There is no authentication - internal/same-network use.
 
+Each declared query parameter may occur exactly once. Repeated values are a
+`400` error rather than silently selecting one source, time range or metric.
+
 ---
 
 ## `GET /reports/oee`
