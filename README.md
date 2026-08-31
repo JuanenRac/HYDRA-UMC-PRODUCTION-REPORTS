@@ -89,7 +89,7 @@ See [`docs/API.md`](docs/API.md) for the full HTTP endpoint reference.
 
 ---
 
-## 4. ⚙️ BUILD & RUN
+## 4. ⚙️ BUILD & RUN GUIDE
 
 Requires Python >= 3.10.
 
