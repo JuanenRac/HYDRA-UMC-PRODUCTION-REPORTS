@@ -41,6 +41,19 @@ semantic-versioning judgment calls:
 
 ---
 
+## [0.0.6] - Real CM5 deployment
+
+- **`systemd/hydra-umc-production-reports.service`** (new) - loopback-only
+  unit for `HYDRA-UMC-OS/provisioning/install_production_reports.sh`
+  (new, that repo), same real "copy src/ + PYTHONPATH" shape as
+  `install_datalake.sh` - this repo is genuinely stdlib-only Python (a
+  real `ThreadingHTTPServer`, no third-party runtime dependency). `--addr`
+  pinned to `127.0.0.1` in the unit, overriding this module's own `0.0.0.0`
+  default, for consistency with every other internal-only API already on
+  this CM5. Real gap found auditing the ecosystem against actual CM5
+  hardware: the real OEE/availability reporting engine had never been
+  installed anywhere.
+
 ## [0.0.5] - Fixed a real version-mirror drift
 
 - **`src/hydra_umc_production_reports/__init__.py`**'s `__version__` had
