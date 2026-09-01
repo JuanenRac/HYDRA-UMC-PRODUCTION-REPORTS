@@ -22,6 +22,7 @@
   },
   "service": {
     "port": 8099,
-    "health_path": "/stats"
+    "health_path": "/stats",
+    "systemd_unit": "hydra-umc-production-reports.service"
   }
 }
