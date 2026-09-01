@@ -145,7 +145,7 @@ curl "http://localhost:8099/reports/availability?sourceId=robot-1&kind=motor_tem
 
 ### 直接相关（项目族之外）
 
-本项目在 Data & Analytics 系列之外没有直接关联的项目（根据生态系统自身
+本项目在 数据与分析 系列之外没有直接关联的项目（根据生态系统自身
 的关系图谱）——其余所有内容请见下方"生态系统的其余部分"。
 
 ### 生态系统的其余部分
