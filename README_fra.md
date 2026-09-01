@@ -114,7 +114,7 @@ curl "http://localhost:8099/reports/availability?sourceId=robot-1&kind=motor_tem
 
 ---
 
-## 🚀 ROADMAP
+## 🚀 FEUILLE DE ROUTE
 * **Fait (v0) :** vrai calcul d'OEE et de disponibilité, vraie intégration HTTP avec HYDRA-UMC-DATALAKE, vraie API HTTP.
 * **Ensuite :** une vraie source de données `production_event` - connecter HYDRA-UMC-JOB-DISPATCHER pour qu'il rapporte les fins de cycle selon ce schéma.
 * **Ensuite :** rapports persistants/planifiés (aujourd'hui chaque rapport est calculé en direct, à la demande).
