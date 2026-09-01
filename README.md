@@ -132,12 +132,12 @@ This project is part of a larger robotics ecosystem by the same author (JuanenRa
 **Parent:** **[HYDRA-UMC-DATALAKE](https://github.com/JuanenRac/HYDRA-UMC-DATALAKE)** — the integration parent whose stored telemetry this project reports on.
 
 **Siblings:**
-- **[HYDRA-UMC-TELEMETRY-COLLECTOR](https://github.com/JuanenRac/HYDRA-UMC-TELEMETRY-COLLECTOR)** — sibling analytics service, same parent.
+- **[HYDRA-UMC-TELEMETRY-COLLECTOR](https://github.com/JuanenRac/HYDRA-UMC-TELEMETRY-COLLECTOR)** — same parent, and a real data source today: `availability.py` reads its `motor_temp` samples (and any other series it writes) straight out of Datalake, no `production_event` convention needed for that report.
 - **[HYDRA-UMC-ANOMALY-DETECTOR](https://github.com/JuanenRac/HYDRA-UMC-ANOMALY-DETECTOR)** — sibling analytics service, same parent.
 
 ### Directly Related (outside the family)
 
-This project has no direct relation outside the Data & Analytics family (per the ecosystem's own relationship map) - see "Rest of the Ecosystem" below for everything else.
+- **[HYDRA-UMC-JOB-DISPATCHER](https://github.com/JuanenRac/HYDRA-UMC-JOB-DISPATCHER)** — the intended real source of `production_event` samples (OEE's own good/cycle-time convention) once mission completions are wired to write them; nothing writes that kind yet, tracked honestly in `mejoras_futuras.txt` rather than claimed as done.
 
 ### Rest of the Ecosystem
 
