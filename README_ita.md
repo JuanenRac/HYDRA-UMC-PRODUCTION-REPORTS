@@ -137,7 +137,7 @@ Questo progetto fa parte di un ecosistema robotico più ampio dello stesso autor
 
 ### Relazione Diretta (fuori dalla famiglia)
 
-Questo progetto non ha relazioni dirette fuori dalla famiglia Dati e Analisi (secondo la mappa delle relazioni dell'ecosistema) - vedi "Resto dell'Ecosistema" sotto per tutto il resto.
+- **[HYDRA-UMC-JOB-DISPATCHER](https://github.com/JuanenRac/HYDRA-UMC-JOB-DISPATCHER)** — la fonte reale prevista dei campioni `production_event` (la convenzione good/cycle-time propria dell'OEE) una volta che il completamento delle missioni sarà collegato per scriverli; al momento nulla scrive ancora questo tipo di dato, tracciato onestamente in `mejoras_futuras.txt` invece di essere dichiarato come completato.
 
 ### Resto dell'Ecosistema
 
