@@ -152,9 +152,7 @@ curl "http://localhost:8099/reports/availability?sourceId=robot-1&kind=motor_tem
 
 ### 直接関連（ファミリー外）
 
-本プロジェクトは、データと分析 ファミリー外に直接関連するプロジェ
-クトを持ちません（エコシステム自身の関係図に基づく）——その他すべて
-は下記の「エコシステムのその他のプロジェクト」を参照してください。
+- **[HYDRA-UMC-JOB-DISPATCHER](https://github.com/JuanenRac/HYDRA-UMC-JOB-DISPATCHER)** —— ミッション完了処理が `production_event` サンプル(OEE自身の良品数/サイクルタイムの規約)を書き込むように配線されれば、その本来意図された実際のソースとなります。現時点ではこの種類を書き込むものは何もなく、完了したと主張するのではなく `mejoras_futuras.txt` で正直に追跡されています。
 
 ### エコシステムのその他のプロジェクト
 

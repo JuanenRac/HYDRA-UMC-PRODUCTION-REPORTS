@@ -137,7 +137,7 @@ Dieses Projekt ist Teil eines größeren Robotik-Ökosystems desselben Autors (J
 
 ### Direkte Beziehung (außerhalb der Familie)
 
-Dieses Projekt hat keine direkte Beziehung außerhalb der Daten & Analytik-Familie (laut der eigenen Beziehungskarte des Ökosystems) - siehe "Restliches Ökosystem" unten für alles andere.
+- **[HYDRA-UMC-JOB-DISPATCHER](https://github.com/JuanenRac/HYDRA-UMC-JOB-DISPATCHER)** — die vorgesehene echte Quelle für `production_event`-Stichproben (OEEs eigene Gut-Teile-/Zykluszeit-Konvention), sobald Missionsabschlüsse zum Schreiben verdrahtet sind; derzeit schreibt nichts diesen Typ, ehrlich in `mejoras_futuras.txt` nachverfolgt statt als erledigt behauptet.
 
 ### Restliches Ökosystem
 

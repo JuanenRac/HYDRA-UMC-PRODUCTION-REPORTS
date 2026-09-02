@@ -145,8 +145,7 @@ curl "http://localhost:8099/reports/availability?sourceId=robot-1&kind=motor_tem
 
 ### 直接相关（项目族之外）
 
-本项目在 数据与分析 系列之外没有直接关联的项目（根据生态系统自身
-的关系图谱）——其余所有内容请见下方"生态系统的其余部分"。
+- **[HYDRA-UMC-JOB-DISPATCHER](https://github.com/JuanenRac/HYDRA-UMC-JOB-DISPATCHER)** —— 一旦任务完成事件被接入以写入数据,本项目将成为 `production_event` 样本(OEE 自身的良品数/周期时间约定)预期的真实来源;目前还没有任何东西写入这类数据,在 `mejoras_futuras.txt` 中诚实地跟踪,而非被宣称已经完成。
 
 ### 生态系统的其余部分
 
