@@ -84,8 +84,15 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 ├── tests/                    # 実際のテスト：OEE/可用性/シフト/エクスポートの計算、偽の DATALAKE に対する往復テスト
 ├── docs/
 │   └── API.md                 # 本物の HTTP エンドポイントリファレンス（リクエスト、レスポンス、ステータスコード）
+├── images/                   # メディアと図版
+├── systemd/
+│   └── hydra-umc-production-reports.service # CM5 上のローカルレポート API 用 systemd ユニット
+├── tools/
+│   ├── build_test.py         # バージョンを更新しないビルド/コンパイル確認
+│   └── ci_validate.py        # CI が使用する manifest/CHANGELOG/docs の検証
 ├── pyproject.toml            # パッケージメタデータ + [dev] extras（pytest）
 ├── bump_version.py           # オドメーター式バージョンインクリメント（ビルドが実行）
+├── bump_manifest_version.py  # hydra-umc.project.json のバージョンをネイティブ側と同期（--sync）
 ├── build.sh / build.bat      # 実際のビルド：venv + editable インストール + 実際のテストスイート
 ├── run.sh / run.bat          # 実際の実行：HTTP API を起動
 └── README.md

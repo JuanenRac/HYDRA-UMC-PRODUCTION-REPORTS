@@ -78,8 +78,15 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 ├── tests/                    # Tests reales: matemática de OEE/disponibilidad/turno/exportación, round-trips contra un DATALAKE falso
 ├── docs/
 │   └── API.md                 # Referencia real de endpoints HTTP (peticiones, respuestas, codigos de estado)
+├── images/                   # Medios y diagramas
+├── systemd/
+│   └── hydra-umc-production-reports.service # Unidad systemd de la API local de informes en la CM5
+├── tools/
+│   ├── build_test.py         # Comprobación de compilación sin versionado
+│   └── ci_validate.py        # Validación de manifiesto/CHANGELOG/docs usada por CI
 ├── pyproject.toml            # Metadatos del paquete + extras [dev] (pytest)
-├── bump_version.py           # Incremento de versión tipo cuentakilómetros (lo ejecuta el build)
+├── bump_version.py           # Incremento de versión nativa tipo cuentakilómetros (lo ejecuta el build)
+├── bump_manifest_version.py  # Sincroniza la versión de hydra-umc.project.json con la nativa (--sync)
 ├── build.sh / build.bat      # Build real: venv + instalación editable + suite de tests real
 ├── run.sh / run.bat          # Ejecución real: arranca la API HTTP
 └── README.md

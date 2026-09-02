@@ -81,8 +81,15 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 ├── tests/                    # 真实测试：OEE/可用性/班次/导出的计算逻辑，针对伪造 DATALAKE 的往返测试
 ├── docs/
 │   └── API.md                 # 真实的 HTTP 端点参考（请求、响应、状态码）
+├── images/                   # 媒体与图示
+├── systemd/
+│   └── hydra-umc-production-reports.service # CM5 本地报告 API 的 systemd 单元
+├── tools/
+│   ├── build_test.py         # 不递增版本号的构建/编译检查
+│   └── ci_validate.py        # CI 使用的 manifest/CHANGELOG/docs 校验
 ├── pyproject.toml            # 包元数据 + [dev] extras（pytest）
 ├── bump_version.py           # 里程表式版本递增（由构建运行）
+├── bump_manifest_version.py  # 将 hydra-umc.project.json 的版本与原生版本同步（--sync）
 ├── build.sh / build.bat      # 真实构建：venv + 可编辑安装 + 真实测试套件
 ├── run.sh / run.bat          # 真实运行：启动 HTTP API
 └── README.md
