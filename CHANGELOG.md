@@ -36,7 +36,7 @@ semantic-versioning judgment calls:
   responses with every field's exact meaning (from `oee.py`/
   `availability.py`), and the `502` vs `400` error distinction (DATALAKE
   unreachable vs. bad input). Cross-checked field-by-field against
-  `tests/test_api.py`'s real assertions (30/30 tests passing).
+  `tests/test_api.py`'s real assertions (12/12 tests passing).
   Documentation-only - no code changed, no version bump.
 
 ---

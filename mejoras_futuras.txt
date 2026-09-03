@@ -1,0 +1,52 @@
+HYDRA-UMC-PRODUCTION-REPORTS - what's still not real, on purpose
+==================================================================
+
+This file is the honest list of what this reporting service deliberately
+does NOT do yet, and why each item was deferred instead of half-built
+alongside the real OEE/availability calculation, shift/day-boundary
+math, and reproducible CSV export that already exist. It is referenced
+from the README (all languages), CHANGELOG.md, and the module-level
+comments in src/hydra_umc_production_reports/reports.py and shift.py.
+
+1. A real production_event data source
+   ------------------------------------
+   reports.py defines this project's own v0 convention for a
+   "production event" DATALAKE sample (kind="production_event", the
+   "good"/"cycleTimeS" fields OEE needs) - but no project in the
+   ecosystem writes that kind yet. HYDRA-UMC-JOB-DISPATCHER would be the
+   real production source once it is wired to report mission/cycle
+   completions this way. Until then, OEE reports against real
+   production_event data can only be exercised with hand-written or
+   test-fixture samples, not a real live production feed - `availability.py`
+   deliberately does not depend on this convention at all, which is why
+   it can already "speak" with real telemetry siblings like
+   HYDRA-UMC-TELEMETRY-COLLECTOR today.
+
+2. DST-aware timezones
+   --------------------
+   shift.py computes shift/day boundaries against a fixed UTC offset per
+   schedule - real, tested, and correct for that model, including a
+   night shift crossing midnight. It does not handle daylight-saving
+   transitions (a shift schedule whose real-world local time shifts
+   twice a year). Getting this right needs a real timezone database
+   dependency and a decision about which zone model to trust; punting on
+   it was choosing a correct-but-limited fixed-offset model over a
+   half-implemented DST-aware one.
+
+3. Plant/cell authorization before querying aggregates
+   ----------------------------------------------------
+   Every `GET /reports/*` call today executes against any sourceId/kind
+   the caller asks for - there is no authorization layer checking that
+   the caller is actually allowed to see a given plant/cell's data. Real
+   OEE/availability numbers are commercially sensitive; adding real
+   authorization is scoped-out future work, not silently assumed away.
+
+4. PDF export
+   ----------
+   `export.py` and `GET /reports/{oee,availability}/export` produce a
+   real, byte-for-byte reproducible CSV today. PDF rendering (the
+   "Automated Reporting: Daily, weekly, and monthly PDF/CSV summaries"
+   feature this README describes) is real future work once the CSV
+   export's reproducibility guarantees are established as the
+   foundation - a PDF is a rendering of the same underlying report data,
+   not a separate calculation.
