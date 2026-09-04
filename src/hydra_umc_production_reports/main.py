@@ -31,7 +31,7 @@ ROLE = (
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="hydra-umc-production-reports")
-    parser.add_argument("--addr", default="0.0.0.0", help="address to bind the HTTP API to")
+    parser.add_argument("--addr", default="127.0.0.1", help="address to bind the HTTP API to")
     parser.add_argument("--port", type=int, default=8099, help="port for the HTTP API")
     parser.add_argument(
         "--datalake-url",

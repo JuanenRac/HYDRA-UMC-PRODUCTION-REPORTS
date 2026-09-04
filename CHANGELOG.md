@@ -22,6 +22,16 @@ semantic-versioning judgment calls:
 
 ## Unreleased - unambiguous report queries
 
+- **`main.py`**'s `--addr` flag now defaults to `127.0.0.1` instead of
+  `0.0.0.0` - an unqualified default binds every interface, and this HTTP
+  API (`GET /reports/oee`, `GET /reports/availability`, `GET /stats`) has
+  no authentication of its own. The real CM5 deployment was never exposed
+  (`systemd/hydra-umc-production-reports.service` already pinned
+  `--addr 127.0.0.1` explicitly, precisely because the code default was
+  unsafe), but running the binary directly without `--addr` - local dev,
+  a manual invocation - listened on every interface by default. Same
+  class of bug already fixed in HYDRA-UMC-DATALAKE/ANOMALY-DETECTOR and
+  HYDRA-UMC-TELEMETRY-COLLECTOR.
 - Rejects repeated query parameters with `400`. Report inputs such as
   `sourceId`, time boundaries and metric fields can no longer be silently
   selected from a duplicated URL value.

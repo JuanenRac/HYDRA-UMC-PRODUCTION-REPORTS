@@ -3,11 +3,12 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0-or-later - see LICENSE
 # =============================================================================
-# --addr 127.0.0.1 overrides this module's own 0.0.0.0 default - every
-# other internal-only API on this CM5 (Datalake, Anomaly-Detector,
-# Job-Dispatcher, Telemetry-Collector) is loopback-only, and this one has
-# no authentication of its own either, so it stays consistent rather than
-# accidentally being the one API reachable from the wider LAN.
+# --addr 127.0.0.1 matches this module's own default (kept explicit here
+# for defense in depth) - every other internal-only API on this CM5
+# (Datalake, Anomaly-Detector, Job-Dispatcher, Telemetry-Collector) is
+# loopback-only, and this one has no authentication of its own either, so
+# it stays consistent rather than accidentally being the one API reachable
+# from the wider LAN.
 [Unit]
 Description=HYDRA-UMC-PRODUCTION-REPORTS real KPI/OEE reporting API
 After=network-online.target hydra-umc-datalake.service
