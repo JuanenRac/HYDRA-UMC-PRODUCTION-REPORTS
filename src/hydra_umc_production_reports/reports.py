@@ -13,7 +13,7 @@ instance.
 from __future__ import annotations
 
 from .availability import AvailabilityReport, compute_availability
-from .datalake_client import DatalakeClient
+from .datalake_client import DatalakeClient, Point
 from .oee import OEEError, OEEReport, ProductionEvent, compute_oee
 
 # This project's own v0 convention for a "production event" telemetry
@@ -29,11 +29,48 @@ PRODUCTION_EVENT_KIND = "production_event"
 GOOD_FIELD = "good"
 CYCLE_TIME_FIELD = "cycleTimeS"
 
+# Real bug found by an ecosystem-wide audit: both report functions below
+# used to call client.query() with its own default limit (10000) and
+# never checked whether that limit was actually hit. DATALAKE's own
+# store.py orders every query ASC by timestamp, so a truncated result
+# silently keeps only the EARLIEST rows in the window and drops
+# everything after - a report built from that looks like a real,
+# complete OEE/Availability number for the requested window, when it
+# actually only covers however much of the window fit in the first
+# MAX_POINTS_PER_QUERY samples (e.g. a source reporting once a second
+# blows through 10000 in well under 3 hours of a real 24h shift).
+# Queried with a real headroom above what any query.py caller here asks
+# for; a result that reaches this cap is treated as truncated and
+# reported as a real, honest failure rather than a wrong-but-plausible
+# number - see _query_all_or_raise() below.
+MAX_POINTS_PER_QUERY = 200_000
+
 
 class ReportError(RuntimeError):
     """Wraps a real, specific reason a from_datalake() report couldn't be
     built - which DATALAKE call failed, or why the data that came back
     wasn't usable - rather than a bare exception."""
+
+
+def _query_all_or_raise(client: DatalakeClient, *, source_id: str, kind: str, field: str, start_ms: int, end_ms: int) -> list[Point]:
+    """Same real query() call every caller below needs, with real
+    truncation detection: if the result count reaches MAX_POINTS_PER_QUERY,
+    more data almost certainly exists beyond it (DATALAKE's own ASC
+    ordering means it would be the MOST RECENT data in the window, the
+    part missing here) - raising a clear ReportError is the honest
+    outcome, not silently computing a report from an incomplete window
+    that looks complete."""
+    points = client.query(source_id=source_id, kind=kind, field=field, start=start_ms, end=end_ms, limit=MAX_POINTS_PER_QUERY)
+    if len(points) >= MAX_POINTS_PER_QUERY:
+        raise ReportError(
+            f"query for source={source_id!r} kind={kind!r} field={field!r} returned "
+            f"{len(points)} points, at or beyond the {MAX_POINTS_PER_QUERY}-point query cap - "
+            "the real result is truncated (DATALAKE orders ascending by timestamp, so the most "
+            "recent part of this window is the part missing) and would silently under-report a "
+            "real OEE/Availability window rather than fail honestly. Narrow the time window and "
+            "run this report in smaller pieces instead."
+        )
+    return points
 
 
 def oee_from_datalake(
@@ -51,8 +88,8 @@ def oee_from_datalake(
     computes a real OEE report from what actually came back - not from
     synthetic or assumed data.
     """
-    good_points = client.query(source_id=source_id, kind=PRODUCTION_EVENT_KIND, field=GOOD_FIELD, start=start_ms, end=end_ms)
-    cycle_points = client.query(source_id=source_id, kind=PRODUCTION_EVENT_KIND, field=CYCLE_TIME_FIELD, start=start_ms, end=end_ms)
+    good_points = _query_all_or_raise(client, source_id=source_id, kind=PRODUCTION_EVENT_KIND, field=GOOD_FIELD, start_ms=start_ms, end_ms=end_ms)
+    cycle_points = _query_all_or_raise(client, source_id=source_id, kind=PRODUCTION_EVENT_KIND, field=CYCLE_TIME_FIELD, start_ms=start_ms, end_ms=end_ms)
 
     cycle_by_ts = {p.timestamp: p.value for p in cycle_points}
     events: list[ProductionEvent] = []
@@ -97,7 +134,7 @@ def availability_from_datalake(
     HYDRA-UMC-TELEMETRY-COLLECTOR already feeds HYDRA-UMC-DATALAKE) and
     computes real downtime from real gaps in when it actually arrived.
     """
-    points = client.query(source_id=source_id, kind=kind, field=field, start=start_ms, end=end_ms)
+    points = _query_all_or_raise(client, source_id=source_id, kind=kind, field=field, start_ms=start_ms, end_ms=end_ms)
     timestamps = [p.timestamp for p in points]
     return compute_availability(
         timestamps,

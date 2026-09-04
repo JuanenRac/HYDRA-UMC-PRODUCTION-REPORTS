@@ -41,6 +41,30 @@ semantic-versioning judgment calls:
 
 ---
 
+## [0.0.7]
+
+- **Fixed a real bug found by an ecosystem-wide bug audit: report
+  windows could be silently truncated with no signal at all.**
+  `oee_from_datalake()`/`availability_from_datalake()` used to call
+  `DatalakeClient.query()` with its own default `limit=10000` and never
+  checked whether that limit was actually hit. `HYDRA-UMC-DATALAKE`'s own
+  `store.py` orders every query ascending by timestamp, so a
+  limit-truncated result silently keeps only the EARLIEST rows in the
+  window and drops the rest - a real source reporting once a second
+  blows through 10000 points in well under 3 hours of a real 24h shift,
+  and the resulting OEE/Availability report looked like a real, complete
+  number computed from the requested window while actually covering only
+  a fraction of it. New `_query_all_or_raise()` (queries with a real
+  200,000-point headroom and raises a clear `ReportError` naming exactly
+  what happened if that cap is reached) replaces the raw `client.query()`
+  calls in both report functions - a truncated window now fails loudly
+  instead of silently returning a wrong-but-plausible number. 3 new
+  tests (2 confirming the honest failure, 1 confirming a real, non-
+  truncated result is never falsely flagged) - `tests/fake_datalake.py`
+  gained real `limit` handling (it previously ignored the parameter
+  entirely) so the fake server's own behavior actually matches
+  DATALAKE's real `LIMIT` semantics.
+
 ## [0.0.6] - Real CM5 deployment
 
 - **`systemd/hydra-umc-production-reports.service`** (new) - loopback-only

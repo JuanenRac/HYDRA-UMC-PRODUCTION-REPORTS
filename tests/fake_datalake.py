@@ -42,7 +42,15 @@ class _Handler(BaseHTTPRequestHandler):
                 points = [p for p in points if p["timestamp"] >= int(params["start"])]
             if "end" in params:
                 points = [p for p in points if p["timestamp"] <= int(params["end"])]
-            body = json.dumps(sorted(points, key=lambda p: p["timestamp"])).encode()
+            points = sorted(points, key=lambda p: p["timestamp"])
+            if "limit" in params:
+                # Real DATALAKE's own store.py applies LIMIT after its own
+                # ASC timestamp ordering - matching that exactly here
+                # matters for the truncation-detection tests in
+                # test_reports.py, which rely on a limit-truncated result
+                # keeping the EARLIEST points and dropping the latest.
+                points = points[: int(params["limit"])]
+            body = json.dumps(points).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(body)))

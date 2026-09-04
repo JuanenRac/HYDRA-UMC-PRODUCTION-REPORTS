@@ -14,6 +14,7 @@ import pytest
 
 from fake_datalake import running_fake_datalake
 from hydra_umc_production_reports.datalake_client import DatalakeClient
+from hydra_umc_production_reports import reports as reports_module
 from hydra_umc_production_reports.reports import ReportError, availability_from_datalake, oee_from_datalake
 
 
@@ -93,3 +94,62 @@ def test_availability_from_datalake_real_round_trip() -> None:
         # Trailing gap from 5000 to 10000 = 5000ms of downtime out of 10000ms window.
         assert report.downtime_ms == 5000
         assert report.availability == pytest.approx(0.5)
+
+
+def test_oee_from_datalake_raises_honestly_instead_of_silently_truncating(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Real bug this covers: the old code called client.query() with its
+    # own default limit (10000) and never checked whether that limit was
+    # actually hit - DATALAKE orders ASC by timestamp, so a truncated
+    # result silently keeps only the EARLIEST rows and drops the rest,
+    # producing a real-looking OEE number computed from an incomplete
+    # window. MAX_POINTS_PER_QUERY is monkeypatched down to keep this
+    # test fast (a real 200_000-point round trip isn't needed to prove
+    # the detection logic itself).
+    monkeypatch.setattr(reports_module, "MAX_POINTS_PER_QUERY", 3)
+    with running_fake_datalake() as (url, server):
+        points = []
+        for i in range(4):  # one more than the (patched) cap
+            ts = i * 1000
+            points.append({"sourceId": "robot-1", "kind": "production_event", "field": "good", "timestamp": ts, "value": 1.0})
+            points.append({"sourceId": "robot-1", "kind": "production_event", "field": "cycleTimeS", "timestamp": ts, "value": 1.0})
+        server.points = points
+        client = DatalakeClient(url)
+        with pytest.raises(ReportError, match="truncated"):
+            oee_from_datalake(
+                client, source_id="robot-1", start_ms=0, end_ms=10000,
+                planned_time_s=10.0, ideal_cycle_time_s=1.0,
+            )
+
+
+def test_availability_from_datalake_raises_honestly_instead_of_silently_truncating(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(reports_module, "MAX_POINTS_PER_QUERY", 3)
+    with running_fake_datalake() as (url, server):
+        server.points = [
+            {"sourceId": "robot-1", "kind": "motor_temp", "field": "value", "timestamp": ts, "value": 20.0}
+            for ts in range(0, 4001, 1000)  # 5 points, one more than the (patched) cap
+        ]
+        client = DatalakeClient(url)
+        with pytest.raises(ReportError, match="truncated"):
+            availability_from_datalake(
+                client, source_id="robot-1", kind="motor_temp", field="value",
+                start_ms=0, end_ms=10000, expected_interval_ms=1000.0,
+            )
+
+
+def test_oee_from_datalake_does_not_falsely_flag_truncation_at_the_real_cap() -> None:
+    # A result that legitimately has FEWER points than the cap must never
+    # be treated as truncated - only reaching (or exceeding) the cap is a
+    # real signal that more data might exist beyond it.
+    with running_fake_datalake() as (url, server):
+        points = []
+        for i in range(5):
+            ts = i * 1000
+            points.append({"sourceId": "robot-1", "kind": "production_event", "field": "good", "timestamp": ts, "value": 1.0})
+            points.append({"sourceId": "robot-1", "kind": "production_event", "field": "cycleTimeS", "timestamp": ts, "value": 1.0})
+        server.points = points
+        client = DatalakeClient(url)
+        report = oee_from_datalake(
+            client, source_id="robot-1", start_ms=0, end_ms=10000,
+            planned_time_s=10.0, ideal_cycle_time_s=1.0,
+        )
+        assert report.total_count == 5
