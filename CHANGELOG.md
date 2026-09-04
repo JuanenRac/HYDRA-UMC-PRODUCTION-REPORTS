@@ -25,6 +25,12 @@ semantic-versioning judgment calls:
 - Rejects repeated query parameters with `400`. Report inputs such as
   `sourceId`, time boundaries and metric fields can no longer be silently
   selected from a duplicated URL value.
+- **`.github/workflows/ci.yml`** - the real `tests/` pytest suite is now
+  actually installed and run in CI. The baseline workflow's Python
+  handling previously only compile-checked (`py_compile`) every `.py`
+  file and validated the manifest/docs - it never ran `pytest`, so a
+  regression in `tests/` could be merged without CI ever failing.
+  CI-only fix, no runtime code changed, no version bump.
 
 ---
 
