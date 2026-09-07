@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "ecosystem": "HYDRA-UMC",
+  "name": "HYDRA-UMC-PRODUCTION-REPORTS",
+  "version": "0.0.8",
+  "role": "api",
+  "stack": "python",
+  "technologies": [
+    "Python",
+    "real OEE formula",
+    "http.server"
+  ],
+  "deployment_target": "cm5",
+  "maturity": "established",
+  "family": "Data & Analytics",
+  "parent": "HYDRA-UMC-DATALAKE",
+  "build": "python tools/build_test.py",
+  "notes": "Real OEE/availability calculation over real HYDRA-UMC-DATALAKE history via a real HTTP client, verified end-to-end with hand-checkable numbers. Real shift/day-boundary computation (shift.py), a real versioned formula plus a sha256 input fingerprint on every report (formula_version/input_fingerprint), and a real byte-for-byte reproducible CSV export (export.py, GET /reports/{oee,availability}/export).",
+  "native_version": {
+    "file": "pyproject.toml",
+    "pattern": "^version\\s*=\\s*\"(\\d+)\\.(\\d+)\\.(\\d+)\""
+  },
+  "service": {
+    "port": 8099,
+    "health_path": "/stats",
+    "systemd_unit": "hydra-umc-production-reports.service"
+  }
+}
