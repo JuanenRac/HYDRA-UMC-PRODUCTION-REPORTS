@@ -18,6 +18,28 @@ semantic-versioning judgment calls:
 
 ---
 
+## [0.0.9] - C09/F04: a real Telemetry-Collector -> Datalake -> Production-Reports chain test
+
+Every real stage of this chain had its own isolated test, but none of
+them proved the FULL real path together - and this repo's own
+`tests/fake_datalake.py` was itself part of the gap: a real HTTP server,
+but a hand-written reimplementation of `HYDRA-UMC-DATALAKE`'s own query
+contract, not the real thing.
+
+New `tests/test_real_telemetry_to_report_chain.py` starts the REAL
+HYDRA-UMC-DATALAKE package (a real sibling checkout, skips if not
+present), ingests real samples using the exact real sourceId/kind/
+timestamp/fields shape HYDRA-UMC-TELEMETRY-COLLECTOR's own
+`sink/datalake.go` sends (confirmed by reading it directly), then runs
+this repo's own real `availability_from_datalake()` against that real,
+live-queried data: a real 40s gap in arrival becomes a real reported
+downtime period, continuous arrival reports full availability, and a
+source that never reports at all is honestly reported as fully down for
+the whole window - not each repo trusting the other's own unit tests in
+isolation.
+
+Verified: full pytest suite (68/68, 4 new), `tools/ci_validate.py` PASS.
+
 ## [0.0.8] - DOC-32: removed private-document references
 
 - **DOC-32 (found in an ecosystem-wide software-improvements audit, P2):**
