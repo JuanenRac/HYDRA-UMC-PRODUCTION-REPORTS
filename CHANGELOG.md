@@ -42,7 +42,7 @@ Verified: full pytest suite (68/68, 4 new), `tools/ci_validate.py` PASS.
 
 ## [0.0.8] - DOC-32: removed private-document references
 
-- **DOC-32 (found in an ecosystem-wide software-improvements audit, P2):**
+- **DOC-32 (P2):**
   `mejoras_futuras.txt` is a real, tracked, public file in this repo -
   but every one of its 12 cross-references (`CHANGELOG.md` x3, README in
   all 7 languages, `reports.py`, `shift.py`) required the reader to jump
@@ -54,9 +54,9 @@ Verified: full pytest suite (68/68, 4 new), `tools/ci_validate.py` PASS.
   so it stays discoverable.
 - **`datalake_client.py`'s `DatalakeClient` now retries a transient
   network failure** (`max_attempts=3` by default, with a short delay
-  between attempts) - found in an ecosystem-wide software-improvements
-  audit: it had a timeout but no retry, so one network hiccup (a dropped
-  connection, a momentary DNS blip, DATALAKE mid-restart) failed an
+  between attempts) - found while auditing the code: it had a timeout but
+  no retry, so one network hiccup (a dropped connection, a momentary DNS
+  blip, DATALAKE mid-restart) failed an
   entire report (daily/weekly/monthly) instead of retrying before
   surfacing the `DatalakeError` that already exists. Only a transient
   `URLError` is retried - a real HTTP response DATALAKE itself sent is
@@ -101,7 +101,7 @@ Verified: full pytest suite (68/68, 4 new), `tools/ci_validate.py` PASS.
 
 ## [0.0.7]
 
-- **Fixed a real bug found by an ecosystem-wide bug audit: report
+- **Fixed a real bug found while auditing the code: report
   windows could be silently truncated with no signal at all.**
   `oee_from_datalake()`/`availability_from_datalake()` used to call
   `DatalakeClient.query()` with its own default `limit=10000` and never
@@ -155,7 +155,7 @@ Verified: full pytest suite (68/68, 4 new), `tools/ci_validate.py` PASS.
 
 ## [0.0.3] - Shift/day boundaries, versioned formulas with real traceability, reproducible CSV export
 
-- **`shift.py`** (new) - a real, single source of truth for where a shift or calendar day starts/ends, so two reports can't silently disagree about the window they both claim to describe (the exact risk the promotion audit flagged). `day_window_ms()`/`ShiftSchedule`/`shift_window_ms()`/`shift_index_for_timestamp()`: real UTC-ms boundaries for a fixed timezone offset (DST intentionally not handled), a real night shift correctly crossing midnight into the next calendar day, and a real inverse lookup (which day/shift a timestamp falls into) proven to round-trip through every shift of a schedule.
+- **`shift.py`** (new) - a real, single source of truth for where a shift or calendar day starts/ends, so two reports can't silently disagree about the window they both claim to describe (the exact risk flagged in review). `day_window_ms()`/`ShiftSchedule`/`shift_window_ms()`/`shift_index_for_timestamp()`: real UTC-ms boundaries for a fixed timezone offset (DST intentionally not handled), a real night shift correctly crossing midnight into the next calendar day, and a real inverse lookup (which day/shift a timestamp falls into) proven to round-trip through every shift of a schedule.
 - **Real formula versioning + input traceability** (`oee.py`/`availability.py`) - every `OEEReport`/`AvailabilityReport` now carries `formula_version` (`"oee-v1"`/`"availability-v1"`, bumped only if the formula itself changes) and a real `input_fingerprint` - a sha256 over the exact, order-independent input data (production events / sample timestamps) that produced it. Two reports built from the same real data always get the same fingerprint; any real difference in the input changes it. Both fields are additive on `GET /reports/oee`/`GET /reports/availability`.
 - **`export.py`** (new) + **`GET /reports/oee/export`**, **`GET /reports/availability/export`** - a real, byte-for-byte reproducible CSV rendering of either report: fixed field order, fixed float formatting, and a header recording the real range (`sourceId`/`startMs`/`endMs`) and any filters, so the file is self-describing even detached from the request that produced it. Calling either export endpoint twice with identical parameters against identical DATALAKE history returns identical bytes - proven by a real test, not assumed.
 - 27 new tests (`tests/test_shift.py`, `tests/test_export.py` new, plus additions to `test_oee.py`/`test_availability.py`/`test_api.py`) = 57 total.
