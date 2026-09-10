@@ -146,6 +146,92 @@ def test_real_source_with_zero_ingested_samples_is_reported_as_fully_down(datala
     assert report.availability == pytest.approx(0.0)
 
 
+def test_real_out_of_order_telemetry_arrival_reports_the_same_downtime(datalake_url):
+    # F04 asks specifically about late / out-of-order events. Real
+    # telemetry does not always arrive timestamp-sorted (a reconnecting
+    # collector flushes a backlog, MQTT redelivery, clock skew between
+    # sources). Ingest the exact same samples as the gap test but in
+    # fully REVERSED timestamp order - the chain must still report the
+    # identical 40-second outage, because the store/query/availability
+    # path keys on the sample timestamp, not on arrival order.
+    source_id, kind, field = "cm5-test-ooo", "motor_temp", "value"
+    interval_ms = 1_000
+    ordered = list(range(0, 20_001, interval_ms)) + list(range(60_000, 100_001, interval_ms))
+    for t in reversed(ordered):
+        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=t, value=42.0)
+
+    client = DatalakeClient(datalake_url)
+    report = availability_from_datalake(
+        client, source_id=source_id, kind=kind, field=field,
+        start_ms=0, end_ms=100_000, expected_interval_ms=float(interval_ms),
+    )
+    assert len(report.downtime_periods) == 1
+    assert report.downtime_periods[0].start_ms == 20_000
+    assert report.downtime_periods[0].end_ms == 60_000
+    assert report.downtime_ms == 40_000
+    assert report.availability == pytest.approx(0.6)
+
+
+def test_real_duplicate_telemetry_ingestion_does_not_distort_availability(datalake_url):
+    # A reconnecting collector that re-sends a batch it already delivered,
+    # or an at-least-once transport, means the SAME (sourceId, kind,
+    # timestamp) sample can hit /ingest more than once. That must not
+    # invent extra coverage, extra downtime, or a double-counted window -
+    # the report has to be identical to the single-delivery case.
+    source_id, kind, field = "cm5-test-dup", "motor_temp", "value"
+    interval_ms = 1_000
+    for _pass in range(3):  # deliver every sample three times
+        for t in range(0, 20_001, interval_ms):
+            _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=t, value=42.0)
+        for t in range(60_000, 100_001, interval_ms):
+            _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=t, value=42.0)
+
+    client = DatalakeClient(datalake_url)
+    report = availability_from_datalake(
+        client, source_id=source_id, kind=kind, field=field,
+        start_ms=0, end_ms=100_000, expected_interval_ms=float(interval_ms),
+    )
+    assert len(report.downtime_periods) == 1
+    assert report.downtime_ms == 40_000
+    assert report.availability == pytest.approx(0.6)
+
+
+def test_real_late_backfill_of_missing_samples_closes_a_reported_gap(datalake_url):
+    # The other half of "out of order": a mid-stream block of samples is
+    # missing at first (reported, correctly, as downtime), then arrives
+    # LATE - after every later sample is already in the lake. Re-running
+    # the report over the same window must now show no outage, proving
+    # the chain reflects a real backfill and never freezes an earlier
+    # verdict.
+    source_id, kind, field = "cm5-test-backfill", "motor_temp", "value"
+    interval_ms = 1_000
+    missing = list(range(21_000, 28_001, interval_ms))  # ~8s hole > 3x interval
+
+    for t in range(0, 20_001, interval_ms):
+        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=t, value=42.0)
+    for t in range(29_000, 60_001, interval_ms):
+        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=t, value=42.0)
+
+    client = DatalakeClient(datalake_url)
+    before = availability_from_datalake(
+        client, source_id=source_id, kind=kind, field=field,
+        start_ms=0, end_ms=60_000, expected_interval_ms=float(interval_ms),
+    )
+    assert len(before.downtime_periods) == 1
+    assert before.downtime_periods[0].start_ms == 20_000
+    assert before.downtime_periods[0].end_ms == 29_000
+
+    for t in missing:  # the late backfill
+        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=t, value=42.0)
+
+    after = availability_from_datalake(
+        client, source_id=source_id, kind=kind, field=field,
+        start_ms=0, end_ms=60_000, expected_interval_ms=float(interval_ms),
+    )
+    assert after.downtime_periods == []
+    assert after.availability == pytest.approx(1.0)
+
+
 def test_compute_availability_pure_function_matches_the_real_chains_own_result():
     # Sanity cross-check: the pure compute_availability() function, given
     # the exact same real timestamps the chain above ingested, must
