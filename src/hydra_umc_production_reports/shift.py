@@ -35,7 +35,7 @@ def day_window_ms(day: date, *, timezone_offset_minutes: int = 0) -> tuple[int, 
 @dataclass(frozen=True)
 class ShiftSchedule:
     """One plant/cell's real shift definition - the source of truth line
-    651-652 of the promotion audit calls for, so every report built
+    the diagnosis notes call for, so every report built
     against it agrees on where a shift starts and ends."""
 
     shift_length_hours: float
