@@ -17,7 +17,7 @@ from dataclasses import dataclass
 # Bumped only if the OEE formula itself changes - a report's own
 # `formula_version` field lets a caller tell "this CSV/PDF came from the
 # same math as that one" apart from "the plant changed how OEE is
-# computed between these two exports" (promotion audit line 653).
+# computed between these two exports" (see the diagnosis notes).
 FORMULA_VERSION = "oee-v1"
 
 

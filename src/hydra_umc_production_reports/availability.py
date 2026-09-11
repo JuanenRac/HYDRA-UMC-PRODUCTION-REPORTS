@@ -17,7 +17,7 @@ import hashlib
 from dataclasses import dataclass
 
 # Bumped only if the availability formula itself changes - see
-# oee.FORMULA_VERSION for the same reasoning (promotion audit line 653).
+# oee.FORMULA_VERSION for the same reasoning (see the diagnosis notes).
 FORMULA_VERSION = "availability-v1"
 
 
