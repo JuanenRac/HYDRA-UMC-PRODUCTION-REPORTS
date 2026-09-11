@@ -11,8 +11,12 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Metrics-OEE%20%2F%20KPI%20%2F%20Cycle--Time-green.svg" alt="Metrics">
-  <img src="https://img.shields.io/badge/Export-PDF%20%2F%20CSV%20%2F%20JSON-blue.svg" alt="Export">
+  <img src="https://img.shields.io/badge/Export-CSV%20%2F%20JSON-blue.svg" alt="Export">
 </p>
+
+---
+
+**诚实核查——今天真正能跑起来的部分：** 真实的 OEE 公式（`oee.py`）、基于遥测数据缺口的真实可用性计算（`availability.py`）、指向 HYDRA-UMC-DATALAKE 自身 `GET /query` 的真实 HTTP 客户端（`datalake_client.py`）、班次/自然日边界的唯一真实基准——包括真实的跨越午夜的夜班（`shift.py`）、逐字节可复现的 CSV 导出（`export.py`），以及把这一切都暴露出来的真实 HTTP API（`api.py`：`GET /reports/oee`、`/reports/availability`、`/reports/{oee,availability}/export`、`/stats`）都是真实且经过测试的（71 个测试，`pytest`）。下面"关键特性"中列出但实际上尚未实现的部分：本代码库中完全没有任何 PDF 导出（`export.py` 只会写 CSV）、没有每日/每周/每月报告的调度机制，也没有向管理者"发送"任何内容的邮件/投递机制——每份报告都是按需实时计算的，每次 HTTP 调用恰好计算一次。目前也还没有真实的 `production_event` 数据源（本生态系统中今天没有任何项目写入该模式，见下面的"架构"），因此 OEE 从未在生产环境中针对真实运行的 HYDRA-UMC-JOB-DISPATCHER 做过验证——只在测试中针对一个伪造的 DATALAKE 以及手工构造的场景验证过。已交付的具体内容见 `CHANGELOG.md`，尚未完成的部分见下面的路线图。
 
 ---
 
@@ -25,10 +29,10 @@
 制造的每一个组件提供可追溯性——从热焊剖面到抓取放置精度。
 
 ### 关键特性：
-* 📈 **OEE 计算：** 可用性、性能和质量的实时指标。
-* 📑 **自动化报告：** 发送给管理者的每日、每周、每月 PDF/CSV 摘要。
-* 🛠️ **瓶颈分析：** 识别哪些机器人或工具正在造成任务队列延迟。
-* 🌡️ **质量可追溯性：** 将每个最终产品与其特定的装配日志（热、视觉、机械）关联起来。
+* 📈 **OEE 计算（已实现）：** 可用性 x 性能 x 质量，在每次通过 `GET /reports/oee` 请求时基于 DATALAKE 遥测数据实时计算。
+* 📤 **按需 CSV/JSON 报告（已实现）：** `GET /reports/{oee,availability}` 返回 JSON；`GET /reports/{oee,availability}/export` 返回逐字节可复现的 CSV。目前没有任何 PDF 导出、没有每日/每周/每月的调度生成，也没有邮件/投递机制——见下面的路线图。
+* 🛠️ **瓶颈分析（计划中）：** 识别哪些机器人或工具正在造成任务队列延迟，需要下面提到的真实 `production_event` 数据源——尚未实现。
+* 🌡️ **质量可追溯性（计划中）：** 将最终产品与其特定的装配日志（热、视觉、机械）关联起来是未来的工作，要等到有不止一个项目向 DATALAKE 写入生产数据之后。
 * 🕐 **班次/日边界：** `shift.py` 为每份报告提供了唯一的真实基准，用于确定班次或自然日的起止时间——包括真实的跨越午夜的夜班。*（已实现）*
 * 🧾 **版本化公式 + 可追溯性：** 每份报告都携带其真实的 `formula_version`，以及基于产生该报告的确切数据计算的 sha256 `input_fingerprint`。*（已实现）*
 * 📤 **可复现的 CSV 导出：** `GET /reports/{oee,availability}/export` —— 对相同输入产生逐字节完全一致的输出，而不仅仅是“足够接近”。*（已实现）*
@@ -129,10 +133,10 @@ curl "http://localhost:8099/reports/availability?sourceId=robot-1&kind=motor_tem
 ---
 
 ## 🚀 路线图
-* **已完成（v0）：** 真实的 OEE 与可用性计算、与 HYDRA-UMC-DATALAKE 的真实 HTTP 集成、真实的 HTTP API。
+* **已完成（v0）：** 真实的 OEE 与可用性计算、与 HYDRA-UMC-DATALAKE 的真实 HTTP 集成、真实的 HTTP API、真实的班次/日边界、版本化公式 + 输入指纹、逐字节可复现的 CSV 导出。
 * **下一步：** 真实的 `production_event` 数据源——连接 HYDRA-UMC-JOB-DISPATCHER，使其以此 schema 报告周期完成情况。
 * **下一步：** 持久化/定时生成的报告（目前每份报告都是按需实时计算的）。
-* **稍后：** 真实的 PDF/CSV 导出以及仪表盘，参见下方原始路线图。
+* **稍后：** PDF 导出、邮件/投递机制，以及仪表盘。
 * 面向工具升级的 AI 驱动 ROI 分析，一旦存储了历史趋势数据，将与这些相同的 OEE 数据相连接。
 
 ---

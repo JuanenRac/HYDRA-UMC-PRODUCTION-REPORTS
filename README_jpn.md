@@ -11,8 +11,12 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Metrics-OEE%20%2F%20KPI%20%2F%20Cycle--Time-green.svg" alt="Metrics">
-  <img src="https://img.shields.io/badge/Export-PDF%20%2F%20CSV%20%2F%20JSON-blue.svg" alt="Export">
+  <img src="https://img.shields.io/badge/Export-CSV%20%2F%20JSON-blue.svg" alt="Export">
 </p>
+
+---
+
+**正直な現状確認 - 実際に今動くもの:** 本物のOEE計算式（`oee.py`）、テレメトリの欠落から算出する本物の稼働率計算（`availability.py`）、HYDRA-UMC-DATALAKE自身の `GET /query` への本物のHTTPクライアント（`datalake_client.py`）、シフト/日境界に関する唯一の信頼できる情報源で、真夜中をまたぐ実際の夜勤も含む（`shift.py`）、バイト単位で再現可能なCSVエクスポート（`export.py`)、そしてこれらすべてを公開する本物のHTTP API（`api.py`: `GET /reports/oee`、`/reports/availability`、`/reports/{oee,availability}/export`、`/stats`）は本物であり、テスト済みです（71件のテスト、`pytest`）。以下の「主な機能」にあたかもすでに動いているかのように記載されているものの、実際には実装されていないもの: このコードのどこにもPDFエクスポートは存在せず（`export.py` はCSVしか書き出しません）、日次/週次/月次レポートのスケジューリングもなく、管理者に何かを「送信」するメール/配信の仕組みもありません - すべてのレポートはリクエストごとに、HTTP呼び出し1回につき正確に1回だけ、その場でライブに計算されます。また、本物の `production_event` データソースもまだ存在しません（この環境の生態系内で今日その形式を書き込んでいるものは何もありません。下記のARCHITECTUREを参照）。そのため、OEEは本番環境で実際に稼働しているHYDRA-UMC-JOB-DISPATCHERに対して一度も検証されたことがなく、テスト内の偽のDATALAKEと手作業で構築したシナリオに対してのみ検証されています。これまでに実際に出荷されたものの詳細は `CHANGELOG.md` を、残っている未完了事項は下記のROADMAPを参照してください。
 
 ---
 
@@ -27,10 +31,10 @@
 精度に至るまで、製造されたすべての部品のトレーサビリティを提供します。
 
 ### 主な機能：
-* 📈 **OEE 計算：** 可用性、パフォーマンス、品質のリアルタイムメトリクス。
-* 📑 **自動化されたレポート：** 管理者に送信される日次、週次、月次の PDF/CSV サマリー。
-* 🛠️ **ボトルネック分析：** ミッションキューの遅延を引き起こしているロボットやツールを特定します。
-* 🌡️ **品質トレーサビリティ：** すべての最終製品を、その特定の組立ログ（熱、視覚、機械）に関連付けます。
+* 📈 **OEE 計算（今日実際に動く）：** 可用性 x パフォーマンス x 品質を、`GET /reports/oee` へのリクエストごとにDATALAKEのテレメトリからライブで計算します。
+* 📤 **オンデマンドのCSV/JSONレポート（今日実際に動く）：** `GET /reports/{oee,availability}` はJSONを返し、`GET /reports/{oee,availability}/export` はバイト単位で再現可能なCSVを返します。PDFエクスポート、日次/週次/月次の定期生成、メール/配信の仕組みは存在しません - 下記のROADMAPを参照してください。
+* 🛠️ **ボトルネック分析（計画中）：** ミッションキューの遅延を引き起こしているロボットやツールを特定するには、下記の本物の `production_event` データソースが必要です - まだ実装されていません。
+* 🌡️ **品質トレーサビリティ（計画中）：** 最終製品をその特定の組立ログ（熱、視覚、機械）に関連付けることは、複数のプロジェクトがDATALAKEに生産データを書き込むようになって初めて実現する将来の作業です。
 * 🕐 **シフト/日境界：** `shift.py` は、シフトや暦日がどこで始まりどこで終わるかについて、すべてのレポートに単一の実在する信頼できる情報源を提供します——真夜中をまたぐ実際の夜勤も含みます。*（実装済み）*
 * 🧾 **バージョン管理された計算式 + トレーサビリティ：** すべてのレポートは、実際の `formula_version` と、それを生成した正確なデータに対する sha256 の `input_fingerprint` を保持します。*（実装済み）*
 * 📤 **再現可能な CSV エクスポート：** `GET /reports/{oee,availability}/export` —— 同一の入力に対してバイト単位で完全に同一の出力を生成します。単なる「近い値」ではありません。*（実装済み）*
@@ -134,10 +138,10 @@ curl "http://localhost:8099/reports/availability?sourceId=robot-1&kind=motor_tem
 ---
 
 ## 🚀 ロードマップ
-* **完了（v0）：** 実際の OEE と可用性の計算、HYDRA-UMC-DATALAKE との実際の HTTP 連携、実際の HTTP API。
+* **完了（v0）：** 実際の OEE と可用性の計算、HYDRA-UMC-DATALAKE との実際の HTTP 連携、実際の HTTP API、実際のシフト/日境界、バージョン管理された計算式 + 入力フィンガープリント、バイト単位で再現可能な CSV エクスポート。
 * **次のステップ：** 実際の `production_event` データソース - HYDRA-UMC-JOB-DISPATCHER を接続し、このスキーマでサイクル完了を報告させる。
 * **次のステップ：** 永続化/スケジュールされたレポート（現在、各レポートはオンデマンドでライブ計算されています）。
-* **さらに先：** 以下の元のロードマップに沿った、実際の PDF/CSV エクスポートとダッシュボード。
+* **さらに先：** PDF エクスポート、メール/配信の仕組み、そしてダッシュボード。
 * 工具アップグレードのための AI 駆動 ROI 分析。履歴トレンドが保存され次第、これらと同じ OEE データに接続されます。
 
 ---
