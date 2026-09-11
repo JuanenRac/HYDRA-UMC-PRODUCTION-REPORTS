@@ -57,7 +57,7 @@ class DatalakeClient:
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout_s = timeout_s
-        # Found in an ecosystem-wide software-improvements audit: this
+        # Found while auditing the code: this
         # client had a timeout but no retry on transient network failure -
         # one network hiccup (a dropped connection, a momentary DNS blip,
         # DATALAKE mid-restart) used to fail an entire report (daily/

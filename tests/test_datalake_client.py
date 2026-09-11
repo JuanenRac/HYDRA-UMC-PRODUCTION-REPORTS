@@ -74,7 +74,7 @@ def test_http_error_is_never_retried() -> None:
 
 
 def test_transient_network_failure_is_retried_then_succeeds() -> None:
-    # Found in an ecosystem-wide software-improvements audit: this client
+    # Found while auditing the code: this client
     # had a timeout but no retry on transient network failure - one
     # network hiccup used to fail an entire report instead of retrying.
     # Proven against a real socket, not a mock: nothing listens on `port`

@@ -29,7 +29,7 @@ PRODUCTION_EVENT_KIND = "production_event"
 GOOD_FIELD = "good"
 CYCLE_TIME_FIELD = "cycleTimeS"
 
-# Real bug found by an ecosystem-wide audit: both report functions below
+# Real bug found while auditing the code: both report functions below
 # used to call client.query() with its own default limit (10000) and
 # never checked whether that limit was actually hit. DATALAKE's own
 # store.py orders every query ASC by timestamp, so a truncated result
