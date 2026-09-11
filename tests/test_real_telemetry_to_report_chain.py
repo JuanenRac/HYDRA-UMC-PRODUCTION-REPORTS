@@ -3,7 +3,7 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 # =============================================================================
-"""C09/F04 (private plan's own flow) - found 2026-09-08: F04's own real
+"""C09/F04 - found while auditing the code: F04's own real
 Telemetry-Collector -> Datalake -> Production-Reports chain never had a
 single test exercising all of it together - each repo only ever proves
 its own stretch. This repo's own `tests/fake_datalake.py` is itself part
