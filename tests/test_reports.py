@@ -73,6 +73,32 @@ def test_oee_from_datalake_handles_unmatched_fields_honestly() -> None:
             )
 
 
+# H028: `unmatched` used to only ever surface inside the ReportError
+# message, reachable only when EVERY cycle failed to match - a PARTIAL
+# mismatch (some cycles complete, some not) silently computed a real,
+# successful report from fewer events than actually existed, with no
+# trace anywhere that any were dropped.
+def test_oee_from_datalake_surfaces_unmatched_count_on_an_otherwise_successful_report() -> None:
+    with running_fake_datalake() as (url, server):
+        points = []
+        for i in range(2):
+            ts = i * 1000
+            points.append({"sourceId": "robot-1", "kind": "production_event", "field": "good", "timestamp": ts, "value": 1.0})
+            points.append({"sourceId": "robot-1", "kind": "production_event", "field": "cycleTimeS", "timestamp": ts, "value": 2.0})
+        # A third cycle's "good" reading with no matching "cycleTimeS" -
+        # a real, incomplete cycle that must not just vanish.
+        points.append({"sourceId": "robot-1", "kind": "production_event", "field": "good", "timestamp": 2000, "value": 1.0})
+        server.points = points
+
+        client = DatalakeClient(url)
+        report = oee_from_datalake(
+            client, source_id="robot-1", start_ms=0, end_ms=3000,
+            planned_time_s=10.0, ideal_cycle_time_s=2.0,
+        )
+        assert report.total_count == 2, "the incomplete cycle must not be silently counted as a real one"
+        assert report.unmatched_count == 1, "the dropped, incomplete cycle must be visible on an otherwise successful report"
+
+
 def test_availability_from_datalake_real_round_trip() -> None:
     with running_fake_datalake() as (url, server):
         # motor_temp samples every 1000ms for the first half of the
