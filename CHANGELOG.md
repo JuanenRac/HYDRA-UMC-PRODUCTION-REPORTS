@@ -18,6 +18,30 @@ semantic-versioning judgment calls:
 
 ---
 
+## [0.1.0] - H027/H028: an unvalidated cycle time, and an incomplete cycle disappearing silently
+
+- **H027:** `compute_oee()`'s `sum(e.cycle_time_s for e in events)`
+  accepted any float, including negative or non-finite (NaN/Infinity)
+  values, with no per-event check. A single bad reading (real
+  clock-skew/sensor error, or a loosely-typed loader letting NaN/
+  Infinity through) could make `operating_time_s` itself negative or
+  non-finite - `availability` is never clamped on its lower bound, so
+  this silently produced a nonsensical report instead of the honest
+  `OEEError` this function already raises for every other
+  unrepresentable input. Now every event's `cycle_time_s` is validated
+  as a finite, non-negative real number first.
+- **H028:** `oee_from_datalake()`'s own `unmatched` counter (a "good"
+  reading with no matching "cycleTimeS" at the same timestamp - a real,
+  incomplete cycle) only ever surfaced inside the `ReportError` message,
+  reachable only when EVERY cycle failed to match. A partial mismatch
+  (some cycles complete, some not) silently computed a real, successful
+  `OEEReport` from fewer events than actually existed, with no trace
+  that any were dropped. `OEEReport` gains a new `unmatched_count` field
+  (defaults to `0` for `compute_oee()`'s own direct callers, which have
+  no concept of it) - `oee_from_datalake()` now attaches the real count
+  to every report it returns, successful or not.
+- 4 new regression tests.
+
 ## [0.0.9] - C09/F04: a real Telemetry-Collector -> Datalake -> Production-Reports chain test
 
 Every real stage of this chain had its own isolated test, but none of

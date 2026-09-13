@@ -68,6 +68,33 @@ def test_compute_oee_rejects_non_positive_ideal_cycle_time() -> None:
         compute_oee(events, planned_time_s=100.0, ideal_cycle_time_s=0.0)
 
 
+# H027: a bare `sum(e.cycle_time_s for e in events)` accepted any float,
+# including negative or non-finite values, with no per-event check - a
+# single bad reading could make operating_time_s itself negative or
+# non-finite, and availability (never clamped on its lower bound) would
+# then silently report a nonsensical value instead of the honest
+# OEEError this function raises for every other unrepresentable input.
+def test_compute_oee_rejects_a_negative_cycle_time() -> None:
+    events = [
+        ProductionEvent(timestamp_ms=1, good=True, cycle_time_s=1.0),
+        ProductionEvent(timestamp_ms=2, good=True, cycle_time_s=-5.0),
+    ]
+    with pytest.raises(OEEError):
+        compute_oee(events, planned_time_s=100.0, ideal_cycle_time_s=1.0)
+
+
+def test_compute_oee_rejects_a_nan_cycle_time() -> None:
+    events = [ProductionEvent(timestamp_ms=1, good=True, cycle_time_s=float("nan"))]
+    with pytest.raises(OEEError):
+        compute_oee(events, planned_time_s=100.0, ideal_cycle_time_s=1.0)
+
+
+def test_compute_oee_rejects_an_infinite_cycle_time() -> None:
+    events = [ProductionEvent(timestamp_ms=1, good=True, cycle_time_s=float("inf"))]
+    with pytest.raises(OEEError):
+        compute_oee(events, planned_time_s=100.0, ideal_cycle_time_s=1.0)
+
+
 def test_compute_oee_all_defective_gives_zero_quality_and_oee() -> None:
     events = [ProductionEvent(timestamp_ms=i, good=False, cycle_time_s=1.0) for i in range(5)]
     report = compute_oee(events, planned_time_s=10.0, ideal_cycle_time_s=1.0)

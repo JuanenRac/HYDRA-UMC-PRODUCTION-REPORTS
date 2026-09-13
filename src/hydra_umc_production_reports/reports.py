@@ -12,6 +12,8 @@ instance.
 """
 from __future__ import annotations
 
+from dataclasses import replace
+
 from .availability import AvailabilityReport, compute_availability
 from .datalake_client import DatalakeClient, Point
 from .oee import OEEError, OEEReport, ProductionEvent, compute_oee
@@ -113,9 +115,17 @@ def oee_from_datalake(
         raise ReportError(reason)
 
     try:
-        return compute_oee(events, planned_time_s=planned_time_s, ideal_cycle_time_s=ideal_cycle_time_s)
+        report = compute_oee(events, planned_time_s=planned_time_s, ideal_cycle_time_s=ideal_cycle_time_s)
     except OEEError as e:
         raise ReportError(str(e)) from e
+    # H028: `unmatched` used to only ever surface in the ReportError
+    # message above - reachable only when EVERY good/cycleTimeS pair
+    # failed to line up. A PARTIAL mismatch (some cycles complete, some
+    # not) silently computed a real OEEReport from fewer events than
+    # actually exist, with no trace anywhere that any were dropped - an
+    # incomplete cycle just disappeared from the report. Attached to
+    # every successful report now, not only the all-failed case.
+    return replace(report, unmatched_count=unmatched)
 
 
 def availability_from_datalake(

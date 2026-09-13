@@ -12,6 +12,7 @@ it from real HYDRA-UMC-DATALAKE history.
 from __future__ import annotations
 
 import hashlib
+import math
 from dataclasses import dataclass
 
 # Bumped only if the OEE formula itself changes - a report's own
@@ -51,6 +52,13 @@ class OEEReport:
     operating_time_s: float
     formula_version: str
     input_fingerprint: str
+    # H028: defaults to 0 for compute_oee()'s own direct callers, which
+    # have no concept of an "unmatched" reading at all - real meaning
+    # only once a caller (oee_from_datalake(), see reports.py) actually
+    # tracks incomplete cycles it had to drop and attaches the real
+    # count via dataclasses.replace(). See that function's own docstring
+    # for exactly what "unmatched" means there.
+    unmatched_count: int = 0
 
 
 def _fingerprint_events(events: list[ProductionEvent]) -> str:
@@ -93,6 +101,20 @@ def compute_oee(
         raise OEEError("planned_time_s must be positive")
     if ideal_cycle_time_s <= 0:
         raise OEEError("ideal_cycle_time_s must be positive")
+    # H027: `sum(e.cycle_time_s for e in events)` below accepted any
+    # float, including negative or non-finite (NaN/inf) values, with no
+    # per-event check. A single bad event (a real clock-skew/sensor
+    # error, or NaN/Infinity smuggled through a loosely-typed loader)
+    # could make operating_time_s itself negative or non-finite -
+    # availability (operating_time_s / planned_time_s) is never clamped
+    # on its LOWER bound, so this produced a "valid-looking" OEEReport
+    # with a nonsensical negative or non-finite availability instead of
+    # the honest OEEError this function already raises for every other
+    # unrepresentable input.
+    for event in events:
+        cycle_time = event.cycle_time_s
+        if isinstance(cycle_time, bool) or not isinstance(cycle_time, (int, float)) or not math.isfinite(cycle_time) or cycle_time < 0:
+            raise OEEError(f"cycle_time_s must be a finite, non-negative number, got {cycle_time!r}")
 
     total_count = len(events)
     good_count = sum(1 for e in events if e.good)
