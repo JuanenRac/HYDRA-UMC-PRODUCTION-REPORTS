@@ -6,7 +6,12 @@
 from __future__ import annotations
 
 from hydra_umc_production_reports.availability import compute_availability
-from hydra_umc_production_reports.export import export_availability_csv, export_oee_csv
+from hydra_umc_production_reports.export import (
+    export_availability_csv,
+    export_availability_html,
+    export_oee_csv,
+    export_oee_html,
+)
 from hydra_umc_production_reports.oee import ProductionEvent, compute_oee
 
 
@@ -69,3 +74,68 @@ def test_export_availability_csv_carries_range_and_formula_version() -> None:
     assert "sourceId,robot-1" in csv_text
     assert report.formula_version in csv_text
     assert report.input_fingerprint in csv_text
+
+
+# ---------------------------------------------------------------------------
+# Real HTML export with embedded SVG charts.
+# ---------------------------------------------------------------------------
+
+
+def test_export_oee_html_is_byte_for_byte_reproducible() -> None:
+    report = _real_oee_report()
+    html_a = export_oee_html(report, source_id="robot-1", start_ms=0, end_ms=10000)
+    html_b = export_oee_html(report, source_id="robot-1", start_ms=0, end_ms=10000)
+    assert html_a == html_b
+
+
+def test_export_oee_html_is_self_contained_with_no_external_assets() -> None:
+    report = _real_oee_report()
+    html_text = export_oee_html(report, source_id="robot-1", start_ms=0, end_ms=10000)
+    assert "<!DOCTYPE html>" in html_text
+    assert "<svg" in html_text
+    # No external script/stylesheet/font/CDN reference of any kind - the
+    # whole point of hand-emitting SVG instead of a charting library.
+    assert "<script" not in html_text
+    # "http://www.w3.org/2000/svg" is the SVG XML namespace URI, declared
+    # inline on every real <svg> element - not a network fetch. The real
+    # thing this asserts against is an external request for an asset (a
+    # stylesheet/script/font/CDN reference), which xmlns is not.
+    assert "<link" not in html_text
+    assert 'rel="stylesheet"' not in html_text
+    assert "cdn." not in html_text
+
+
+def test_export_oee_html_carries_the_real_report_fields_and_range() -> None:
+    report = _real_oee_report()
+    html_text = export_oee_html(report, source_id="robot-1", start_ms=0, end_ms=10000)
+    assert "robot-1" in html_text
+    assert report.formula_version in html_text
+    assert report.input_fingerprint in html_text
+    # The real Availability/Performance/Quality/OEE bar chart rows.
+    assert "Availability" in html_text
+    assert "Performance" in html_text
+    assert "Quality" in html_text
+    assert "OEE" in html_text
+
+
+def test_export_oee_html_escapes_a_real_hostile_source_id() -> None:
+    report = _real_oee_report()
+    html_text = export_oee_html(report, source_id="<script>alert(1)</script>", start_ms=0, end_ms=10000)
+    assert "<script>alert(1)</script>" not in html_text
+    assert "&lt;script&gt;" in html_text
+
+
+def test_export_availability_html_is_byte_for_byte_reproducible() -> None:
+    report = _real_availability_report()
+    html_a = export_availability_html(report, source_id="robot-1", start_ms=0, end_ms=10000)
+    html_b = export_availability_html(report, source_id="robot-1", start_ms=0, end_ms=10000)
+    assert html_a == html_b
+
+
+def test_export_availability_html_draws_one_svg_segment_per_real_downtime_period() -> None:
+    report = _real_availability_report()
+    assert len(report.downtime_periods) > 0, "the fixture must actually exercise a real gap"
+    html_text = export_availability_html(report, source_id="robot-1", start_ms=0, end_ms=10000)
+    # Track bar (green) + one red <rect> per real downtime period.
+    assert html_text.count('fill="#dc2626"') == len(report.downtime_periods)
+    assert 'fill="#16a34a"' in html_text
