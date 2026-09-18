@@ -18,6 +18,10 @@ semantic-versioning judgment calls:
 
 ---
 
+## [0.1.1]
+
+- Added a real HTML export option for both OEE and availability reports (`GET .../export?format=html`), alongside the existing CSV/JSON output: a single self-contained page with an embedded, hand-generated SVG chart (a bar chart of Availability/Performance/Quality/OEE, or a downtime timeline for availability) and no external JS/CSS dependency of any kind, consistent with this project's own existing avoidance of heavy dependencies.
+
 ## [0.1.0] - H027/H028: an unvalidated cycle time, and an incomplete cycle disappearing silently
 
 - **H027:** `compute_oee()`'s `sum(e.cycle_time_s for e in events)`

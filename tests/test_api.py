@@ -215,6 +215,57 @@ def test_availability_endpoint_returns_400_for_missing_params() -> None:
             assert "error" in body
 
 
+def test_oee_export_endpoint_returns_a_real_self_contained_html_report() -> None:
+    with running_fake_datalake() as (datalake_url, fake_server):
+        points = []
+        for i in range(5):
+            ts = i * 1000
+            points.append({"sourceId": "robot-1", "kind": "production_event", "field": "good", "timestamp": ts, "value": 1.0 if i < 4 else 0.0})
+            points.append({"sourceId": "robot-1", "kind": "production_event", "field": "cycleTimeS", "timestamp": ts, "value": 2.0})
+        fake_server.points = points
+
+        with running_reports_server(datalake_url) as base_url:
+            url = f"{base_url}/reports/oee/export?sourceId=robot-1&start=0&end=5000&plannedTimeS=10.0&idealCycleTimeS=2.0&format=html"
+            status, content_type, body = _get_raw(url)
+            assert status == 200
+            assert content_type.startswith("text/html")
+            assert "<svg" in body
+            assert "oee-v1" in body
+
+
+def test_availability_export_endpoint_returns_a_real_self_contained_html_report() -> None:
+    with running_fake_datalake() as (datalake_url, fake_server):
+        fake_server.points = [
+            {"sourceId": "robot-1", "kind": "motor_temp", "field": "value", "timestamp": ts, "value": 20.0}
+            for ts in range(0, 5001, 1000)
+        ]
+        with running_reports_server(datalake_url) as base_url:
+            url = (
+                f"{base_url}/reports/availability/export?sourceId=robot-1&kind=motor_temp&field=value"
+                "&start=0&end=10000&expectedIntervalMs=1000&format=html"
+            )
+            status, content_type, body = _get_raw(url)
+            assert status == 200
+            assert content_type.startswith("text/html")
+            assert "<svg" in body
+            assert "availability-v1" in body
+
+
+def test_export_endpoint_returns_400_for_an_unknown_format() -> None:
+    with running_fake_datalake() as (datalake_url, fake_server):
+        points = []
+        for i in range(5):
+            ts = i * 1000
+            points.append({"sourceId": "robot-1", "kind": "production_event", "field": "good", "timestamp": ts, "value": 1.0})
+            points.append({"sourceId": "robot-1", "kind": "production_event", "field": "cycleTimeS", "timestamp": ts, "value": 2.0})
+        fake_server.points = points
+        with running_reports_server(datalake_url) as base_url:
+            url = f"{base_url}/reports/oee/export?sourceId=robot-1&start=0&end=5000&plannedTimeS=10.0&idealCycleTimeS=2.0&format=xml"
+            status, body = _get(url)
+            assert status == 400
+            assert "error" in body
+
+
 def test_unknown_path_returns_404() -> None:
     with running_fake_datalake() as (datalake_url, _fake):
         with running_reports_server(datalake_url) as base_url:

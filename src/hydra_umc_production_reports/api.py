@@ -18,7 +18,7 @@ from urllib.parse import parse_qs, urlparse
 
 from .availability import AvailabilityError
 from .datalake_client import DatalakeClient, DatalakeError
-from .export import export_availability_csv, export_oee_csv
+from .export import export_availability_csv, export_availability_html, export_oee_csv, export_oee_html
 from .oee import OEEError
 from .reports import ReportError, availability_from_datalake, oee_from_datalake
 
@@ -36,6 +36,15 @@ def _write_csv(handler: BaseHTTPRequestHandler, status: int, csv_text: str) -> N
     body = csv_text.encode("utf-8")
     handler.send_response(status)
     handler.send_header("Content-Type", "text/csv")
+    handler.send_header("Content-Length", str(len(body)))
+    handler.end_headers()
+    handler.wfile.write(body)
+
+
+def _write_html(handler: BaseHTTPRequestHandler, status: int, html_text: str) -> None:
+    body = html_text.encode("utf-8")
+    handler.send_response(status)
+    handler.send_header("Content-Type", "text/html; charset=utf-8")
     handler.send_header("Content-Length", str(len(body)))
     handler.end_headers()
     handler.wfile.write(body)
@@ -116,6 +125,19 @@ class Handler(BaseHTTPRequestHandler):
         report = self._build_oee_report(params)
         if report is None:
             return
+        # `format=csv` (the default, unchanged) or `format=html` - a real,
+        # self-contained HTML rendering (embedded SVG bar chart, no
+        # external JS/CSS) for viewing straight in a browser, alongside
+        # the existing CSV/JSON output. Any other value is a real, honest
+        # 400, not a silent fallback to CSV.
+        fmt = params.get("format", "csv")
+        if fmt == "html":
+            html_text = export_oee_html(report, source_id=params["sourceId"], start_ms=int(params["start"]), end_ms=int(params["end"]))
+            _write_html(self, 200, html_text)
+            return
+        if fmt != "csv":
+            _write_error(self, 400, f"unknown format: {fmt!r} (expected 'csv' or 'html')")
+            return
         csv_text = export_oee_csv(report, source_id=params["sourceId"], start_ms=int(params["start"]), end_ms=int(params["end"]))
         _write_csv(self, 200, csv_text)
 
@@ -156,6 +178,18 @@ class Handler(BaseHTTPRequestHandler):
     def _handle_availability_export(self, params: dict[str, str]) -> None:
         report = self._build_availability_report(params)
         if report is None:
+            return
+        # See _handle_oee_export's own comment for the real format=html
+        # option this shares.
+        fmt = params.get("format", "csv")
+        if fmt == "html":
+            html_text = export_availability_html(
+                report, source_id=params["sourceId"], start_ms=int(params["start"]), end_ms=int(params["end"])
+            )
+            _write_html(self, 200, html_text)
+            return
+        if fmt != "csv":
+            _write_error(self, 400, f"unknown format: {fmt!r} (expected 'csv' or 'html')")
             return
         csv_text = export_availability_csv(
             report, source_id=params["sourceId"], start_ms=int(params["start"]), end_ms=int(params["end"])
