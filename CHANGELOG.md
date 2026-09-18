@@ -68,9 +68,9 @@ isolation.
 
 Verified: full pytest suite (68/68, 4 new), `tools/ci_validate.py` PASS.
 
-## [0.0.8] - DOC-32: removed private-document references
+## [0.0.8] - removed private-document references
 
-- **DOC-32 (P2):**
+- **Removed dangling private-document references:**
   `mejoras_futuras.txt` is a real, tracked, public file in this repo -
   but every one of its 12 cross-references (`CHANGELOG.md` x3, README in
   all 7 languages, `reports.py`, `shift.py`) required the reader to jump
