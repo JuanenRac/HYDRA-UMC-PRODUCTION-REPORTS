@@ -22,9 +22,9 @@ semantic-versioning judgment calls:
 
 - Added a real HTML export option for both OEE and availability reports (`GET .../export?format=html`), alongside the existing CSV/JSON output: a single self-contained page with an embedded, hand-generated SVG chart (a bar chart of Availability/Performance/Quality/OEE, or a downtime timeline for availability) and no external JS/CSS dependency of any kind, consistent with this project's own existing avoidance of heavy dependencies.
 
-## [0.1.0] - H027/H028: an unvalidated cycle time, and an incomplete cycle disappearing silently
+## [0.1.0] - An unvalidated cycle time, and an incomplete cycle disappearing silently
 
-- **H027:** `compute_oee()`'s `sum(e.cycle_time_s for e in events)`
+- `compute_oee()`'s `sum(e.cycle_time_s for e in events)`
   accepted any float, including negative or non-finite (NaN/Infinity)
   values, with no per-event check. A single bad reading (real
   clock-skew/sensor error, or a loosely-typed loader letting NaN/
@@ -34,7 +34,7 @@ semantic-versioning judgment calls:
   `OEEError` this function already raises for every other
   unrepresentable input. Now every event's `cycle_time_s` is validated
   as a finite, non-negative real number first.
-- **H028:** `oee_from_datalake()`'s own `unmatched` counter (a "good"
+- `oee_from_datalake()`'s own `unmatched` counter (a "good"
   reading with no matching "cycleTimeS" at the same timestamp - a real,
   incomplete cycle) only ever surfaced inside the `ReportError` message,
   reachable only when EVERY cycle failed to match. A partial mismatch
