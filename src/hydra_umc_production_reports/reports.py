@@ -118,7 +118,7 @@ def oee_from_datalake(
         report = compute_oee(events, planned_time_s=planned_time_s, ideal_cycle_time_s=ideal_cycle_time_s)
     except OEEError as e:
         raise ReportError(str(e)) from e
-    # H028: `unmatched` used to only ever surface in the ReportError
+    # `unmatched` used to only ever surface in the ReportError
     # message above - reachable only when EVERY good/cycleTimeS pair
     # failed to line up. A PARTIAL mismatch (some cycles complete, some
     # not) silently computed a real OEEReport from fewer events than

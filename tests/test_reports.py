@@ -73,7 +73,7 @@ def test_oee_from_datalake_handles_unmatched_fields_honestly() -> None:
             )
 
 
-# H028: `unmatched` used to only ever surface inside the ReportError
+# `unmatched` used to only ever surface inside the ReportError
 # message, reachable only when EVERY cycle failed to match - a PARTIAL
 # mismatch (some cycles complete, some not) silently computed a real,
 # successful report from fewer events than actually existed, with no
