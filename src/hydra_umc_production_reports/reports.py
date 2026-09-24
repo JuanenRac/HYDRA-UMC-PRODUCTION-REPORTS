@@ -16,7 +16,9 @@ from dataclasses import replace
 
 from .availability import AvailabilityReport, compute_availability
 from .datalake_client import DatalakeClient, Point
+from . import __version__
 from .oee import OEEError, OEEReport, ProductionEvent, compute_oee
+from .provenance import Provenance
 
 # This project's own v0 convention for a "production event" telemetry
 # sample stored in HYDRA-UMC-DATALAKE: one Sample per completed cycle,
@@ -125,7 +127,19 @@ def oee_from_datalake(
     # actually exist, with no trace anywhere that any were dropped - an
     # incomplete cycle just disappeared from the report. Attached to
     # every successful report now, not only the all-failed case.
-    return replace(report, unmatched_count=unmatched)
+    return replace(
+        report,
+        unmatched_count=unmatched,
+        provenance=Provenance(
+            source_id=source_id,
+            kind=PRODUCTION_EVENT_KIND,
+            fields=(GOOD_FIELD, CYCLE_TIME_FIELD),
+            window_start_ms=start_ms,
+            window_end_ms=end_ms,
+            points_used=len(good_points) + len(cycle_points),
+            generator_version=__version__,
+        ),
+    )
 
 
 def availability_from_datalake(
@@ -146,10 +160,22 @@ def availability_from_datalake(
     """
     points = _query_all_or_raise(client, source_id=source_id, kind=kind, field=field, start_ms=start_ms, end_ms=end_ms)
     timestamps = [p.timestamp for p in points]
-    return compute_availability(
+    report = compute_availability(
         timestamps,
         window_start_ms=start_ms,
         window_end_ms=end_ms,
         expected_interval_ms=expected_interval_ms,
         gap_factor=gap_factor,
+    )
+    return replace(
+        report,
+        provenance=Provenance(
+            source_id=source_id,
+            kind=kind,
+            fields=(field,),
+            window_start_ms=start_ms,
+            window_end_ms=end_ms,
+            points_used=len(points),
+            generator_version=__version__,
+        ),
     )

@@ -15,6 +15,8 @@ import hashlib
 import math
 from dataclasses import dataclass
 
+from .provenance import Provenance
+
 # Bumped only if the OEE formula itself changes - a report's own
 # `formula_version` field lets a caller tell "this CSV/PDF came from the
 # same math as that one" apart from "the plant changed how OEE is
@@ -59,6 +61,9 @@ class OEEReport:
     # count via dataclasses.replace(). See that function's own docstring
     # for exactly what "unmatched" means there.
     unmatched_count: int = 0
+    # Where the numbers came from (see provenance.py); None for a direct
+    # compute_oee() call, which has no source or window of its own.
+    provenance: Provenance | None = None
 
 
 def _fingerprint_events(events: list[ProductionEvent]) -> str:

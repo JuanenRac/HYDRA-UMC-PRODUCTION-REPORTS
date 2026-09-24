@@ -18,6 +18,14 @@ semantic-versioning judgment calls:
 
 ---
 
+## [0.1.2] - Reports say where their numbers came from
+
+- OEE and availability reports built from DATALAKE now carry a `provenance` block: source,
+  series kind and fields, the time window, how many samples were used and the version of
+  this program that computed it (it appears in the API JSON). CSV exports add `pointsUsed`
+  and `generatorVersion` rows when it is present. A report computed directly, without a
+  source, has no provenance and its CSV is unchanged.
+
 ## [0.1.1]
 
 - Added a real HTML export option for both OEE and availability reports (`GET .../export?format=html`), alongside the existing CSV/JSON output: a single self-contained page with an embedded, hand-generated SVG chart (a bar chart of Availability/Performance/Quality/OEE, or a downtime timeline for availability) and no external JS/CSS dependency of any kind, consistent with this project's own existing avoidance of heavy dependencies.

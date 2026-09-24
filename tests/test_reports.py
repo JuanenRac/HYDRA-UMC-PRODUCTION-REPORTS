@@ -179,3 +179,54 @@ def test_oee_from_datalake_does_not_falsely_flag_truncation_at_the_real_cap() ->
             planned_time_s=10.0, ideal_cycle_time_s=1.0,
         )
         assert report.total_count == 5
+
+
+def test_reports_carry_where_their_numbers_came_from() -> None:
+    from hydra_umc_production_reports import __version__
+
+    with running_fake_datalake() as (url, server):
+        points = []
+        for i in range(5):
+            ts = i * 1000
+            points.append({"sourceId": "robot-1", "kind": "production_event", "field": "good", "timestamp": ts, "value": 1.0})
+            points.append({"sourceId": "robot-1", "kind": "production_event", "field": "cycleTimeS", "timestamp": ts, "value": 2.0})
+        points += [
+            {"sourceId": "robot-1", "kind": "motor_temp", "field": "value", "timestamp": ts, "value": 20.0}
+            for ts in range(0, 5001, 1000)
+        ]
+        server.points = points
+        client = DatalakeClient(url)
+
+        oee = oee_from_datalake(client, source_id="robot-1", start_ms=0, end_ms=5000, planned_time_s=10.0, ideal_cycle_time_s=2.0)
+        assert oee.provenance is not None
+        assert (oee.provenance.source_id, oee.provenance.kind) == ("robot-1", "production_event")
+        assert oee.provenance.fields == ("good", "cycleTimeS")
+        assert (oee.provenance.window_start_ms, oee.provenance.window_end_ms) == (0, 5000)
+        assert oee.provenance.points_used == 10
+        assert oee.provenance.generator_version == __version__
+
+        avail = availability_from_datalake(
+            client, source_id="robot-1", kind="motor_temp", field="value", start_ms=0, end_ms=10000, expected_interval_ms=1000.0
+        )
+        assert avail.provenance is not None
+        assert avail.provenance.points_used == 6
+        assert avail.provenance.fields == ("value",)
+
+
+def test_a_direct_computation_has_no_provenance_and_the_csv_names_the_generator() -> None:
+    from hydra_umc_production_reports.export import export_oee_csv
+    from hydra_umc_production_reports.oee import ProductionEvent, compute_oee
+
+    direct = compute_oee([ProductionEvent(timestamp_ms=0, good=True, cycle_time_s=2.0)], planned_time_s=2.0, ideal_cycle_time_s=2.0)
+    assert direct.provenance is None
+    assert "generatorVersion" not in export_oee_csv(direct, source_id="s", start_ms=0, end_ms=1)
+
+    with running_fake_datalake() as (url, server):
+        server.points = [
+            {"sourceId": "r", "kind": "production_event", "field": "good", "timestamp": 0, "value": 1.0},
+            {"sourceId": "r", "kind": "production_event", "field": "cycleTimeS", "timestamp": 0, "value": 2.0},
+        ]
+        report = oee_from_datalake(DatalakeClient(url), source_id="r", start_ms=0, end_ms=1, planned_time_s=2.0, ideal_cycle_time_s=2.0)
+    csv_text = export_oee_csv(report, source_id="r", start_ms=0, end_ms=1)
+    assert "pointsUsed,2" in csv_text
+    assert "generatorVersion," in csv_text

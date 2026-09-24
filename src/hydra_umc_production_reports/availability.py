@@ -16,6 +16,8 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 
+from .provenance import Provenance
+
 # Bumped only if the availability formula itself changes - see
 # oee.FORMULA_VERSION for the same reasoning (see the diagnosis notes).
 FORMULA_VERSION = "availability-v1"
@@ -44,6 +46,7 @@ class AvailabilityReport:
     availability: float  # 0.0-1.0
     formula_version: str
     input_fingerprint: str
+    provenance: Provenance | None = None
 
 
 def _fingerprint_timestamps(timestamps_ms: list[int]) -> str:
