@@ -60,6 +60,10 @@ def _render_csv(
     writer.writerow(["sourceId", source_id])
     writer.writerow(["startMs", start_ms])
     writer.writerow(["endMs", end_ms])
+    provenance = row.get("provenance")
+    if provenance:
+        writer.writerow(["pointsUsed", provenance["points_used"]])
+        writer.writerow(["generatorVersion", provenance["generator_version"]])
     for key in sorted((filters or {}).keys()):
         writer.writerow([f"filter:{key}", filters[key]])
     writer.writerow([])
