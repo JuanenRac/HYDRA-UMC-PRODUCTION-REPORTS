@@ -52,7 +52,7 @@ class OEEReport:
     operating_time_s: float
     formula_version: str
     input_fingerprint: str
-    # H028: defaults to 0 for compute_oee()'s own direct callers, which
+    # defaults to 0 for compute_oee's own direct callers, which
     # have no concept of an "unmatched" reading at all - real meaning
     # only once a caller (oee_from_datalake(), see reports.py) actually
     # tracks incomplete cycles it had to drop and attaches the real
@@ -101,7 +101,7 @@ def compute_oee(
         raise OEEError("planned_time_s must be positive")
     if ideal_cycle_time_s <= 0:
         raise OEEError("ideal_cycle_time_s must be positive")
-    # H027: `sum(e.cycle_time_s for e in events)` below accepted any
+    # `sum(e.cycle_time_s for e in events)` below accepted any
     # float, including negative or non-finite (NaN/inf) values, with no
     # per-event check. A single bad event (a real clock-skew/sensor
     # error, or NaN/Infinity smuggled through a loosely-typed loader)

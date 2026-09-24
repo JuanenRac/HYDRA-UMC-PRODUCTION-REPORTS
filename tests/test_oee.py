@@ -68,7 +68,7 @@ def test_compute_oee_rejects_non_positive_ideal_cycle_time() -> None:
         compute_oee(events, planned_time_s=100.0, ideal_cycle_time_s=0.0)
 
 
-# H027: a bare `sum(e.cycle_time_s for e in events)` accepted any float,
+# a bare `sum(e.cycle_time_s for e in events)` accepted any float,
 # including negative or non-finite values, with no per-event check - a
 # single bad reading could make operating_time_s itself negative or
 # non-finite, and availability (never clamped on its lower bound) would
