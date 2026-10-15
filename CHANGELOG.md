@@ -90,7 +90,7 @@ Verified: full pytest suite (68/68, 4 new), `tools/ci_validate.py` PASS.
   so it stays discoverable.
 - **`datalake_client.py`'s `DatalakeClient` now retries a transient
   network failure** (`max_attempts=3` by default, with a short delay
-  between attempts) - found while auditing the code: it had a timeout but
+  between attempts) - found on code review: it had a timeout but
   no retry, so one network hiccup (a dropped connection, a momentary DNS
   blip, DATALAKE mid-restart) failed an
   entire report (daily/weekly/monthly) instead of retrying before
@@ -137,7 +137,7 @@ Verified: full pytest suite (68/68, 4 new), `tools/ci_validate.py` PASS.
 
 ## [0.0.7]
 
-- **Fixed a real bug found while auditing the code: report
+- **Fixed a real bug found on code review: report
   windows could be silently truncated with no signal at all.**
   `oee_from_datalake()`/`availability_from_datalake()` used to call
   `DatalakeClient.query()` with its own default `limit=10000` and never
@@ -168,8 +168,7 @@ Verified: full pytest suite (68/68, 4 new), `tools/ci_validate.py` PASS.
   real `ThreadingHTTPServer`, no third-party runtime dependency). `--addr`
   pinned to `127.0.0.1` in the unit, overriding this module's own `0.0.0.0`
   default, for consistency with every other internal-only API already on
-  this CM5. Real gap found auditing the ecosystem against actual CM5
-  hardware: the real OEE/availability reporting engine had never been
+  this CM5. Real gap found checking the ecosystem against actual CM5 hardware: the real OEE/availability reporting engine had never been
   installed anywhere.
 
 ## [0.0.5] - Fixed a real version-mirror drift
