@@ -139,3 +139,27 @@ def test_export_availability_html_draws_one_svg_segment_per_real_downtime_period
     # Track bar (green) + one red <rect> per real downtime period.
     assert html_text.count('fill="#dc2626"') == len(report.downtime_periods)
     assert 'fill="#16a34a"' in html_text
+
+
+def test_a_source_id_or_filter_that_looks_like_a_formula_is_made_inert_in_the_csv() -> None:
+    # a spreadsheet runs a cell that starts with = + - @ as a formula (CWE-1236)
+    report = _real_oee_report()
+    csv_text = export_oee_csv(
+        report,
+        source_id='=HYPERLINK("http://evil.example/","click")',
+        start_ms=0,
+        end_ms=10000,
+        filters={"cell": "@SUM(A1:A9)", "plant": "-2+3", "ok": "Turin"},
+    )
+    lines = csv_text.splitlines()
+    assert lines[0].startswith("sourceId,\"'=HYPERLINK(")
+    assert "filter:cell,'@SUM(A1:A9)" in lines
+    assert "filter:plant,'-2+3" in lines
+    assert "filter:ok,Turin" in lines  # an ordinary value is untouched
+
+
+def test_an_ordinary_csv_is_byte_identical_to_what_it_was_before_the_formula_guard() -> None:
+    report = _real_oee_report()
+    csv_text = export_oee_csv(report, source_id="robot-1", start_ms=0, end_ms=10000, filters={"cell": "A"})
+    assert csv_text.splitlines()[0] == "sourceId,robot-1"
+    assert "filter:cell,A" in csv_text.splitlines()

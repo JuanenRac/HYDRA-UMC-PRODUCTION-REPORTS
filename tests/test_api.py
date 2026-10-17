@@ -271,3 +271,19 @@ def test_unknown_path_returns_404() -> None:
         with running_reports_server(datalake_url) as base_url:
             status, _body = _get(f"{base_url}/nope")
             assert status == 404
+
+
+def test_a_client_that_sends_nothing_is_dropped_instead_of_holding_a_thread(monkeypatch) -> None:
+    import socket
+    import time
+
+    from hydra_umc_production_reports.api import Handler
+
+    monkeypatch.setattr(Handler, "timeout", 0.3)
+    with running_fake_datalake() as (datalake_url, _fake):
+        with running_reports_server(datalake_url) as base_url:
+            port = int(base_url.rsplit(":", 1)[1])
+            with socket.create_connection(("127.0.0.1", port), timeout=5) as client:
+                started = time.monotonic()
+                assert client.recv(1) == b""  # sends nothing; the server closes the connection by itself
+                assert time.monotonic() - started < 3

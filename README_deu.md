@@ -4,7 +4,7 @@
 
 # 📈 HYDRA-UMC-PRODUCTION-REPORTS
 
-<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | 🇩🇪 <b>Deutsch</b> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a></p>
+<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | 🇩🇪 <b>Deutsch</b> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 📑 Automatisierte KPI- & GAE-Berichts-Engine für Betriebsleiter
 
@@ -16,7 +16,7 @@
 
 ---
 
-**Ehrlichkeitscheck - was heute wirklich läuft:** die echte GAE-Formel (`oee.py`), die echte Verfügbarkeitsberechnung aus Telemetrielücken (`availability.py`), der echte HTTP-Client zum eigenen `GET /query` von HYDRA-UMC-DATALAKE (`datalake_client.py`), die einzige Quelle der Wahrheit für Schicht-/Tagesgrenzen einschließlich einer echten Nachtschicht über Mitternacht hinaus (`shift.py`), der byteidentisch reproduzierbare CSV-Export (`export.py`) und die echte HTTP-API, die all das bereitstellt (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`), sind real und getestet (86 Tests, `pytest`). Was NICHT implementiert ist, obwohl es weiter unten unter "Hauptmerkmale" so aufgeführt ist, als liefe es bereits: Es gibt nirgendwo in diesem Code einen PDF-Export (`export.py` schreibt ausschließlich CSV), keine Planung von täglichen/wöchentlichen/monatlichen Berichten und keinen E-Mail-/Zustellmechanismus, um irgendetwas an einen Manager zu "senden" - jeder Bericht wird live, auf Anfrage, genau einmal pro HTTP-Aufruf berechnet. Es gibt auch noch keine echte `production_event`-Datenquelle (nichts in diesem Ökosystem schreibt dieses Schema heute, siehe ARCHITEKTUR weiter unten), sodass die GAE noch nie gegen einen echten, produktiven HYDRA-UMC-JOB-DISPATCHER getestet wurde - nur gegen ein simuliertes DATALAKE in Tests und von Hand konstruierte Szenarien. Siehe `CHANGELOG.md` für genau das, was bisher ausgeliefert wurde, und die ROADMAP weiter unten für das, was noch offen ist.
+**Ehrlichkeitscheck - was heute wirklich läuft:** die echte GAE-Formel (`oee.py`), die echte Verfügbarkeitsberechnung aus Telemetrielücken (`availability.py`), der echte HTTP-Client zum eigenen `GET /query` von HYDRA-UMC-DATALAKE (`datalake_client.py`), die einzige Quelle der Wahrheit für Schicht-/Tagesgrenzen einschließlich einer echten Nachtschicht über Mitternacht hinaus (`shift.py`), der byteidentisch reproduzierbare CSV-Export (`export.py`) und die echte HTTP-API, die all das bereitstellt (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`), sind real und getestet (89 Tests, `pytest`). Was NICHT implementiert ist, obwohl es weiter unten unter "Hauptmerkmale" so aufgeführt ist, als liefe es bereits: Es gibt nirgendwo in diesem Code einen PDF-Export (`export.py` schreibt ausschließlich CSV und eine eigenständige HTML-Seite), keine Planung von täglichen/wöchentlichen/monatlichen Berichten und keinen E-Mail-/Zustellmechanismus, um irgendetwas an einen Manager zu "senden" - jeder Bericht wird live, auf Anfrage, genau einmal pro HTTP-Aufruf berechnet. Es gibt auch noch keine echte `production_event`-Datenquelle (nichts in diesem Ökosystem schreibt dieses Schema heute, siehe ARCHITEKTUR weiter unten), sodass die GAE noch nie gegen einen echten, produktiven HYDRA-UMC-JOB-DISPATCHER getestet wurde - nur gegen ein simuliertes DATALAKE in Tests und von Hand konstruierte Szenarien. Siehe `CHANGELOG.md` für genau das, was bisher ausgeliefert wurde, und die ROADMAP weiter unten für das, was noch offen ist.
 
 ---
 
@@ -33,7 +33,7 @@ Es berechnet die **GAE (Gesamtanlageneffektivität / OEE)** des gesamten Schwarm
 * 🌡️ **Qualitätsrückverfolgbarkeit (geplant):** die Verknüpfung eines Endprodukts mit seinen spezifischen Montageprotokollen (thermisch, visuell, mechanisch) ist zukünftige Arbeit, sobald mehr als ein Projekt Produktionsdaten in DATALAKE schreibt.
 * 🕐 **Schicht-/Tagesgrenzen:** `shift.py` gibt jedem Bericht eine einzige, echte Quelle der Wahrheit dafür, wo eine Schicht oder ein Kalendertag beginnt/endet - einschließlich einer echten Nachtschicht, die über Mitternacht hinausgeht. *(implementiert)*
 * 🧾 **Versionierte Formeln + Rückverfolgbarkeit:** Jeder Bericht trägt seine echte `formula_version` und einen sha256-`input_fingerprint` über die exakten Daten, die ihn erzeugt haben. *(implementiert)*
-* 📤 **Reproduzierbarer CSV-Export:** `GET /reports/{oee,availability}/export` - byteidentische Ausgabe für identische Eingaben, nicht nur "nah genug". *(implementiert)*
+* 📤 **Reproduzierbarer CSV-Export:** `GET /reports/{oee,availability}/export` - byteidentische Ausgabe für identische Eingaben, nicht nur "nah genug". *(implementiert)* Eine Freitextzelle (Quell-ID, Filterwert), die mit `=`, `+`, `-` oder `@` beginnt, erhält ein führendes Apostroph, damit eine Tabellenkalkulation sie nicht als Formel ausführt.
 
 ---
 

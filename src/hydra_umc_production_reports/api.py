@@ -66,6 +66,11 @@ def _query_params(handler: BaseHTTPRequestHandler) -> dict[str, str]:
 class Handler(BaseHTTPRequestHandler):
     server: "ReportsServer"
 
+    # Seconds a client may stay silent on its connection before the server
+    # drops it, so a client that connects and sends nothing cannot hold a
+    # handler thread forever. Socket I/O only; never the time a report takes.
+    timeout = 15.0
+
     def log_message(self, format: str, *args: object) -> None:  # noqa: A002
         pass  # quiet by default, same reasoning as this family's other api.py files
 

@@ -4,7 +4,7 @@
 
 # 📈 HYDRA-UMC-PRODUCTION-REPORTS
 
-<p align="center">🇺🇸 <b>English</b> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a></p>
+<p align="center">🇺🇸 <b>English</b> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 📑 Automated KPI & OEE Reporting Engine for Plant Managers
 
@@ -16,7 +16,7 @@
 
 ---
 
-**Honesty check - what actually runs today:** the real OEE formula (`oee.py`), the real telemetry-gap availability calculation (`availability.py`), the real HTTP client to HYDRA-UMC-DATALAKE's own `GET /query` (`datalake_client.py`), the shift/day-boundary source of truth including a real night shift crossing midnight (`shift.py`), the byte-for-byte reproducible CSV export (`export.py`), and the real HTTP API exposing all of it (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`) are real and tested (86 tests, `pytest`). What is NOT implemented, despite being listed under "Key Features" below as if it already ran: there is no PDF export anywhere in this codebase (`export.py` only ever writes CSV), no scheduling of daily/weekly/monthly reports, and no email/delivery mechanism to "send" anything to a manager - every report is computed live, on request, exactly once per HTTP call. There is also no real `production_event` data source yet (nothing in this ecosystem writes that schema today, see ARCHITECTURE below), so OEE has never been exercised against a live HYDRA-UMC-JOB-DISPATCHER in production - only against a fake DATALAKE in tests and hand-constructed scenarios. See `CHANGELOG.md` for exactly what has shipped so far, and the ROADMAP below for what remains open.
+**Honesty check - what actually runs today:** the real OEE formula (`oee.py`), the real telemetry-gap availability calculation (`availability.py`), the real HTTP client to HYDRA-UMC-DATALAKE's own `GET /query` (`datalake_client.py`), the shift/day-boundary source of truth including a real night shift crossing midnight (`shift.py`), the byte-for-byte reproducible CSV export (`export.py`), and the real HTTP API exposing all of it (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`) are real and tested (89 tests, `pytest`). What is NOT implemented, despite being listed under "Key Features" below as if it already ran: there is no PDF export anywhere in this codebase (`export.py` only writes CSV and a self-contained HTML page), no scheduling of daily/weekly/monthly reports, and no email/delivery mechanism to "send" anything to a manager - every report is computed live, on request, exactly once per HTTP call. There is also no real `production_event` data source yet (nothing in this ecosystem writes that schema today, see ARCHITECTURE below), so OEE has never been exercised against a live HYDRA-UMC-JOB-DISPATCHER in production - only against a fake DATALAKE in tests and hand-constructed scenarios. See `CHANGELOG.md` for exactly what has shipped so far, and the ROADMAP below for what remains open.
 
 ---
 
@@ -33,7 +33,7 @@ It calculates the **OEE (Overall Equipment Effectiveness)** of the entire swarm,
 * 🌡️ **Quality Traceability (planned):** linking a final product to its specific assembly logs (thermal, visual, mechanical) is future work, once more than one project writes production data into DATALAKE.
 * 🕐 **Shift/Day Boundaries:** `shift.py` gives every report a single, real source of truth for where a shift or calendar day starts/ends - including a real night shift crossing midnight. *(implemented)*
 * 🧾 **Versioned Formulas + Traceability:** Every report carries its real `formula_version` and a sha256 `input_fingerprint` over the exact data that produced it. *(implemented)*
-* 📤 **Reproducible CSV Export:** `GET /reports/{oee,availability}/export` - byte-for-byte identical output for identical inputs, not just "close enough". *(implemented)*
+* 📤 **Reproducible CSV Export:** `GET /reports/{oee,availability}/export` - byte-for-byte identical output for identical inputs, not just "close enough". *(implemented)* A free-text cell (source id, filter value) that starts with `=`, `+`, `-` or `@` gets a leading apostrophe, so a spreadsheet does not run it as a formula.
 
 ---
 

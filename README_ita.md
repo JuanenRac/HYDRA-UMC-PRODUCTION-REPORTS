@@ -4,7 +4,7 @@
 
 # 📈 HYDRA-UMC-PRODUCTION-REPORTS
 
-<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | 🇮🇹 <b>Italiano</b> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a></p>
+<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | 🇮🇹 <b>Italiano</b> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 📑 Motore di reportistica KPI e OEE automatizzato per i direttori di stabilimento
 
@@ -16,7 +16,7 @@
 
 ---
 
-**Verifica di onestà - cosa funziona davvero oggi:** la vera formula OEE (`oee.py`), il vero calcolo di disponibilità basato sui buchi di telemetria (`availability.py`), il vero client HTTP verso il `GET /query` proprio di HYDRA-UMC-DATALAKE (`datalake_client.py`), l'unica fonte di verità per i confini turno/giorno, incluso un vero turno di notte che attraversa la mezzanotte (`shift.py`), l'esportazione CSV riproducibile byte per byte (`export.py`), e la vera API HTTP che espone tutto questo (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`) sono reali e testati (86 test, `pytest`). Ciò che NON è implementato, nonostante sia elencato in "Caratteristiche principali" più sotto come se già funzionasse: non esiste alcuna esportazione PDF da nessuna parte in questo codice (`export.py` scrive solo CSV), nessuna pianificazione di report giornalieri/settimanali/mensili, e nessun meccanismo di email/consegna per "inviare" qualcosa a un manager - ogni report viene calcolato dal vivo, su richiesta, esattamente una volta per chiamata HTTP. Inoltre non esiste ancora una vera fonte di dati `production_event` (nulla in questo ecosistema scrive quello schema oggi, vedi ARCHITETTURA più sotto), quindi l'OEE non è mai stato testato contro un vero HYDRA-UMC-JOB-DISPATCHER in produzione - solo contro un DATALAKE finto nei test e scenari costruiti a mano. Vedi `CHANGELOG.md` per ciò che è stato consegnato finora esattamente, e la TABELLA DI MARCIA più sotto per ciò che resta aperto.
+**Verifica di onestà - cosa funziona davvero oggi:** la vera formula OEE (`oee.py`), il vero calcolo di disponibilità basato sui buchi di telemetria (`availability.py`), il vero client HTTP verso il `GET /query` proprio di HYDRA-UMC-DATALAKE (`datalake_client.py`), l'unica fonte di verità per i confini turno/giorno, incluso un vero turno di notte che attraversa la mezzanotte (`shift.py`), l'esportazione CSV riproducibile byte per byte (`export.py`), e la vera API HTTP che espone tutto questo (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`) sono reali e testati (89 test, `pytest`). Ciò che NON è implementato, nonostante sia elencato in "Caratteristiche principali" più sotto come se già funzionasse: non esiste alcuna esportazione PDF da nessuna parte in questo codice (`export.py` scrive solo CSV e una pagina HTML autonoma), nessuna pianificazione di report giornalieri/settimanali/mensili, e nessun meccanismo di email/consegna per "inviare" qualcosa a un manager - ogni report viene calcolato dal vivo, su richiesta, esattamente una volta per chiamata HTTP. Inoltre non esiste ancora una vera fonte di dati `production_event` (nulla in questo ecosistema scrive quello schema oggi, vedi ARCHITETTURA più sotto), quindi l'OEE non è mai stato testato contro un vero HYDRA-UMC-JOB-DISPATCHER in produzione - solo contro un DATALAKE finto nei test e scenari costruiti a mano. Vedi `CHANGELOG.md` per ciò che è stato consegnato finora esattamente, e la TABELLA DI MARCIA più sotto per ciò che resta aperto.
 
 ---
 
@@ -33,7 +33,7 @@ Calcola l'**OEE (Overall Equipment Effectiveness)** dell'intero sciame, identifi
 * 🌡️ **Tracciabilità della qualità (pianificato):** collegare un prodotto finale ai suoi log di assemblaggio specifici (termici, visivi, meccanici) è lavoro futuro, una volta che più di un progetto scriverà dati di produzione in DATALAKE.
 * 🕐 **Confini Turno/Giorno:** `shift.py` fornisce a ogni report un'unica, vera fonte di verità su dove inizia e finisce un turno o un giorno di calendario - incluso un vero turno di notte che attraversa la mezzanotte. *(implementato)*
 * 🧾 **Formule Versionate + Tracciabilità:** Ogni report porta il suo vero `formula_version` e un `input_fingerprint` sha256 calcolato sui dati esatti che lo hanno prodotto. *(implementato)*
-* 📤 **Esportazione CSV Riproducibile:** `GET /reports/{oee,availability}/export` - output identico byte per byte per input identici, non solo "abbastanza vicino". *(implementato)*
+* 📤 **Esportazione CSV Riproducibile:** `GET /reports/{oee,availability}/export` - output identico byte per byte per input identici, non solo "abbastanza vicino". *(implementato)* Una cella di testo libero (id sorgente, valore di filtro) che inizia con `=`, `+`, `-` o `@` riceve un apostrofo iniziale, così un foglio di calcolo non la esegue come formula.
 
 ---
 

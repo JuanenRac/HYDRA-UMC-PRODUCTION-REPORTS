@@ -46,6 +46,19 @@ def _format_value(value: object) -> str:
     return str(value)
 
 
+# A cell that starts with one of these is read as a formula by Excel, LibreOffice and
+# Google Sheets (CWE-1236): a source id or a filter value such as `=HYPERLINK(...)`,
+# which comes from a request or from a device, would run when the CSV is opened.
+_FORMULA_TRIGGERS = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _csv_text(value: str) -> str:
+    """A free-text cell made inert for a spreadsheet: a leading apostrophe is the
+    standard way to make it plain text. Numbers are never passed through here
+    (a negative number legitimately starts with "-")."""
+    return "'" + value if value.startswith(_FORMULA_TRIGGERS) else value
+
+
 def _render_csv(
     field_order: list[str],
     row: dict[str, object],
@@ -57,7 +70,7 @@ def _render_csv(
 ) -> str:
     buf = io.StringIO(newline="")
     writer = csv.writer(buf, lineterminator="\n")
-    writer.writerow(["sourceId", source_id])
+    writer.writerow(["sourceId", _csv_text(source_id)])
     writer.writerow(["startMs", start_ms])
     writer.writerow(["endMs", end_ms])
     provenance = row.get("provenance")
@@ -65,7 +78,7 @@ def _render_csv(
         writer.writerow(["pointsUsed", provenance["points_used"]])
         writer.writerow(["generatorVersion", provenance["generator_version"]])
     for key in sorted((filters or {}).keys()):
-        writer.writerow([f"filter:{key}", filters[key]])
+        writer.writerow([f"filter:{key}", _csv_text(filters[key])])
     writer.writerow([])
     writer.writerow(field_order)
     writer.writerow([_format_value(row[field]) for field in field_order])

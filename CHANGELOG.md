@@ -18,6 +18,13 @@ semantic-versioning judgment calls:
 
 ---
 
+## [0.1.3] - CSV formula guard, idle connections dropped, Portuguese README
+
+- **Spreadsheet formula injection in the CSV export:** the source id and the filter values written into the CSV come from the request or from a device, so a source id such as `=HYPERLINK("http://...","click")` was written verbatim and ran as a formula when the file was opened in Excel, LibreOffice or Google Sheets (CWE-1236). A free-text cell that starts with `=`, `+`, `-`, `@`, a tab or a carriage return now gets a leading apostrophe; numbers are never touched (a negative value legitimately starts with `-`) and an ordinary export is byte-for-byte what it was.
+- **Idle connections are dropped:** the HTTP handler had no connection timeout, so a client that opened a connection and sent nothing held a handler thread forever. A silent client is now dropped after 15 seconds; the limit covers socket I/O only, never the time a report takes to compute.
+- **Tests:** new tests cover the formula guard (a hostile source id and filter values, and that an ordinary CSV is unchanged) and the dropped idle connection, 89 in total.
+- **Docs:** the README says `export.py` also writes a self-contained HTML page (it only claimed CSV), documents the formula guard and corrects the test count, and a README in Portuguese (`README_por.md`) joins the other translations.
+
 ## [0.1.2] - Reports say where their numbers came from
 
 - OEE and availability reports built from DATALAKE now carry a `provenance` block: source,

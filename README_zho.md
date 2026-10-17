@@ -4,7 +4,7 @@
 
 # 📈 HYDRA-UMC-PRODUCTION-REPORTS
 
-<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | 🇨🇳 <b>简体中文</b> | <a href="README_jpn.md">🇯🇵 日本語</a></p>
+<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | 🇨🇳 <b>简体中文</b> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 📑 面向工厂管理者的自动化 KPI 与 OEE 报告引擎
 
@@ -16,7 +16,7 @@
 
 ---
 
-**诚实核查——今天真正能跑起来的部分：** 真实的 OEE 公式（`oee.py`）、基于遥测数据缺口的真实可用性计算（`availability.py`）、指向 HYDRA-UMC-DATALAKE 自身 `GET /query` 的真实 HTTP 客户端（`datalake_client.py`）、班次/自然日边界的唯一真实基准——包括真实的跨越午夜的夜班（`shift.py`）、逐字节可复现的 CSV 导出（`export.py`），以及把这一切都暴露出来的真实 HTTP API（`api.py`：`GET /reports/oee`、`/reports/availability`、`/reports/{oee,availability}/export`、`/stats`）都是真实且经过测试的（86 个测试，`pytest`）。下面"关键特性"中列出但实际上尚未实现的部分：本代码库中完全没有任何 PDF 导出（`export.py` 只会写 CSV）、没有每日/每周/每月报告的调度机制，也没有向管理者"发送"任何内容的邮件/投递机制——每份报告都是按需实时计算的，每次 HTTP 调用恰好计算一次。目前也还没有真实的 `production_event` 数据源（本生态系统中今天没有任何项目写入该模式，见下面的"架构"），因此 OEE 从未在生产环境中针对真实运行的 HYDRA-UMC-JOB-DISPATCHER 做过验证——只在测试中针对一个伪造的 DATALAKE 以及手工构造的场景验证过。已交付的具体内容见 `CHANGELOG.md`，尚未完成的部分见下面的路线图。
+**诚实核查——今天真正能跑起来的部分：** 真实的 OEE 公式（`oee.py`）、基于遥测数据缺口的真实可用性计算（`availability.py`）、指向 HYDRA-UMC-DATALAKE 自身 `GET /query` 的真实 HTTP 客户端（`datalake_client.py`）、班次/自然日边界的唯一真实基准——包括真实的跨越午夜的夜班（`shift.py`）、逐字节可复现的 CSV 导出（`export.py`），以及把这一切都暴露出来的真实 HTTP API（`api.py`：`GET /reports/oee`、`/reports/availability`、`/reports/{oee,availability}/export`、`/stats`）都是真实且经过测试的（89 个测试，`pytest`）。下面"关键特性"中列出但实际上尚未实现的部分：本代码库中完全没有任何 PDF 导出（`export.py` 只会写 CSV 和一个自包含的 HTML 页面）、没有每日/每周/每月报告的调度机制，也没有向管理者"发送"任何内容的邮件/投递机制——每份报告都是按需实时计算的，每次 HTTP 调用恰好计算一次。目前也还没有真实的 `production_event` 数据源（本生态系统中今天没有任何项目写入该模式，见下面的"架构"），因此 OEE 从未在生产环境中针对真实运行的 HYDRA-UMC-JOB-DISPATCHER 做过验证——只在测试中针对一个伪造的 DATALAKE 以及手工构造的场景验证过。已交付的具体内容见 `CHANGELOG.md`，尚未完成的部分见下面的路线图。
 
 ---
 
@@ -35,7 +35,7 @@
 * 🌡️ **质量可追溯性（计划中）：** 将最终产品与其特定的装配日志（热、视觉、机械）关联起来是未来的工作，要等到有不止一个项目向 DATALAKE 写入生产数据之后。
 * 🕐 **班次/日边界：** `shift.py` 为每份报告提供了唯一的真实基准，用于确定班次或自然日的起止时间——包括真实的跨越午夜的夜班。*（已实现）*
 * 🧾 **版本化公式 + 可追溯性：** 每份报告都携带其真实的 `formula_version`，以及基于产生该报告的确切数据计算的 sha256 `input_fingerprint`。*（已实现）*
-* 📤 **可复现的 CSV 导出：** `GET /reports/{oee,availability}/export` —— 对相同输入产生逐字节完全一致的输出，而不仅仅是“足够接近”。*（已实现）*
+* 📤 **可复现的 CSV 导出：** `GET /reports/{oee,availability}/export` —— 对相同输入产生逐字节完全一致的输出，而不仅仅是“足够接近”。*（已实现）* 以 `=`、`+`、`-` 或 `@` 开头的自由文本单元格（源 ID、过滤值）会被加上前导撇号，这样电子表格就不会把它当作公式执行。
 
 ---
 
