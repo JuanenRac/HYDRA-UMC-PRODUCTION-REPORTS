@@ -16,7 +16,7 @@
 
 ---
 
-**诚实核查——今天真正能跑起来的部分：** 真实的 OEE 公式（`oee.py`）、基于遥测数据缺口的真实可用性计算（`availability.py`）、指向 HYDRA-UMC-DATALAKE 自身 `GET /query` 的真实 HTTP 客户端（`datalake_client.py`）、班次/自然日边界的唯一真实基准——包括真实的跨越午夜的夜班（`shift.py`）、逐字节可复现的 CSV 导出（`export.py`），以及把这一切都暴露出来的真实 HTTP API（`api.py`：`GET /reports/oee`、`/reports/availability`、`/reports/{oee,availability}/export`、`/stats`）都是真实且经过测试的（89 个测试，`pytest`）。下面"关键特性"中列出但实际上尚未实现的部分：本代码库中完全没有任何 PDF 导出（`export.py` 只会写 CSV 和一个自包含的 HTML 页面）、没有每日/每周/每月报告的调度机制，也没有向管理者"发送"任何内容的邮件/投递机制——每份报告都是按需实时计算的，每次 HTTP 调用恰好计算一次。目前也还没有真实的 `production_event` 数据源（本生态系统中今天没有任何项目写入该模式，见下面的"架构"），因此 OEE 从未在生产环境中针对真实运行的 HYDRA-UMC-JOB-DISPATCHER 做过验证——只在测试中针对一个伪造的 DATALAKE 以及手工构造的场景验证过。已交付的具体内容见 `CHANGELOG.md`，尚未完成的部分见下面的路线图。
+**诚实核查——今天真正能跑起来的部分：** 真实的 OEE 公式（`oee.py`）、基于遥测数据缺口的真实可用性计算（`availability.py`）、指向 HYDRA-UMC-DATALAKE 自身 `GET /query` 的真实 HTTP 客户端（`datalake_client.py`）、班次/自然日边界的唯一真实基准——包括真实的跨越午夜的夜班（`shift.py`）、逐字节可复现的 CSV 导出（`export.py`），以及把这一切都暴露出来的真实 HTTP API（`api.py`：`GET /reports/oee`、`/reports/availability`、`/reports/{oee,availability}/export`、`/stats`）都是真实且经过测试的（122 个测试，`pytest`）。下面"关键特性"中列出但实际上尚未实现的部分：本代码库中完全没有任何 PDF 导出（`export.py` 只会写 CSV 和一个自包含的 HTML 页面）、没有每日/每周/每月报告的调度机制，也没有向管理者"发送"任何内容的邮件/投递机制——每份报告都是按需实时计算的，每次 HTTP 调用恰好计算一次。目前也还没有真实的 `production_event` 数据源（本生态系统中今天没有任何项目写入该模式，见下面的"架构"），因此 OEE 从未在生产环境中针对真实运行的 HYDRA-UMC-JOB-DISPATCHER 做过验证——只在测试中针对一个伪造的 DATALAKE 以及手工构造的场景验证过。已交付的具体内容见 `CHANGELOG.md`，尚未完成的部分见下面的路线图。
 
 ---
 
@@ -36,6 +36,7 @@
 * 🕐 **班次/日边界：** `shift.py` 为每份报告提供了唯一的真实基准，用于确定班次或自然日的起止时间——包括真实的跨越午夜的夜班。*（已实现）*
 * 🧾 **版本化公式 + 可追溯性：** 每份报告都携带其真实的 `formula_version`，以及基于产生该报告的确切数据计算的 sha256 `input_fingerprint`。*（已实现）*
 * 📤 **可复现的 CSV 导出：** `GET /reports/{oee,availability}/export` —— 对相同输入产生逐字节完全一致的输出，而不仅仅是“足够接近”。*（已实现）* 以 `=`、`+`、`-` 或 `@` 开头的自由文本单元格（源 ID、过滤值）会被加上前导撇号，这样电子表格就不会把它当作公式执行。
+* 🧱 **可安全暴露，并对输入保持诚实（v0）：** 除非另行指定，API 监听 `127.0.0.1`，其他地址需要 bearer 令牌（`--token` / `PRODUCTION_REPORTS_TOKEN`）或 `--allow-anonymous`；同一时间只构建少量报告（超出返回 `503`）；非有限数值以 `400` 拒绝；窗口为半开区间 `[start, end)`，因此边界上的样本只计入一份报告；`day=` 和 `shift=` 根据班次计划推导窗口；导出时使用 `format=html` 会返回自包含的 HTML 页面；报告会说明其输入何时不一致（`inconsistent_input`）以及丢弃了多少读数（`unmatched_count`，导出中也有）。*（已实现）*
 
 ---
 
@@ -45,9 +46,11 @@
 flowchart LR
     LAKE["HYDRA-UMC-DATALAKE"] --> PROC["Report Processor Engine"]
     PROC --> OEE["OEE & KPI Calculation"]
-    OEE --> TPL["Report Templating (PDF/HTML)"]
-    TPL --> DISP["Dashboard / Email / Export"]
+    OEE -.-> TPL["Report Templating (PDF/HTML)"]
+    TPL -.-> DISP["Dashboard / Email / Export"]
 ```
+
+> 虚线箭头仅为计划，尚未实现：没有 PDF、报告模板、仪表板或电子邮件投递。导出格式为 CSV 和自包含的 HTML 页面。
 
 ---
 
@@ -55,7 +58,7 @@ flowchart LR
 
 * **为何这是 HYDRA-UMC-DATALAKE 的兄弟项目，而非子模块。** 报告生成是一项针对已存储遥测数据的周期性、只读的“查询+计算”任务——将其保持独立，意味着报告生成永远不会与 HYDRA-UMC-TELEMETRY-COLLECTOR 自身对同一存储资源的实时写入相竞争。本项目没有自己的数据库。
 * **真实的 HTTP 集成，而非共享库。** `datalake_client.py` 通过纯 HTTP（`GET /query`）与一个真实运行中的 HYDRA-UMC-DATALAKE 实例通信，并且刻意不直接导入 DATALAKE 的 Python 包——尽管两者目前处于同一个开发环境中。真实的 HTTP 才是真正解耦的集成接口，符合生产环境中独立仓库/服务之间实际通信的方式。
-* **`production_event` schema 是本项目自己的 v0 约定，并非生态系统标准。** OEE 需要知道每个完成周期的零件是否合格、周期耗时多久。本项目将其定义为每个周期一个 DATALAKE `Sample`，`kind="production_event"`，在同一个时间戳下一起写入两个字段：`"good"`（1.0/0.0）和 `"cycleTimeS"`。目前还没有其他项目写入这个 kind——一旦 HYDRA-UMC-JOB-DISPATCHER 被接入以这种方式报告周期完成情况，它将成为真正的生产数据来源。
+* **`production_event` schema 是本项目自己的 v0 约定，并非生态系统标准。** OEE 需要知道每个完成周期的零件是否合格、周期耗时多久。本项目将其定义为每个周期一个 DATALAKE `Sample`，`kind="production_event"`，在同一个时间戳下一起写入两个字段：`"good"`（1.0/0.0）和 `"cycleTimeS"`。目前还没有其他项目写入这个 kind——天然的生产者是知道周期何时开始和结束的组件（编排器或机器人本身）：HYDRA-UMC-JOB-DISPATCHER 不保存时间戳，无法计算周期时间。
 * **可用性计算故意针对任意已存在的遥测流生效。** 与 OEE 不同，`availability.py` 完全不需要 `production_event` 约定——它使用 DATALAKE 中已存在的任意时间戳序列（例如 HYDRA-UMC-TELEMETRY-COLLECTOR 已经写入的 `motor_temp` 样本），并将连续样本之间大于 `expected_interval_ms x gap_factor` 的间隔标记为真实的停机时间。这正是让本项目在任何项目写入真实 `production_event` 数据之前，就已经能与其遥测“兄弟项目”真正“对话”的原因。
 * **Performance 和 Availability 都被限制在 `[0, 1]` 之间。** 真实周期可能比一个保守的“理想”数值更快，或者运行时间可能超出配置有误的计划窗口；报告 >100% 在算术上是站得住脚的，但在实践中具有误导性，因此两者都会被截断。
 * **未匹配的 `production_event` 字段会被计数并报告，绝不会被静默地赋予默认值。** 如果某条 `"good"` 记录在完全相同的时间戳上没有对应的 `"cycleTimeS"`（一次部分/格式错误的写入），它会被排除在外，被排除的条数会包含在错误/响应中，而不是假设周期时间为 0 秒——那样会破坏 Performance 数值的准确性。
@@ -134,7 +137,7 @@ curl "http://localhost:8099/reports/availability?sourceId=robot-1&kind=motor_tem
 
 ## 🚀 路线图
 * **已完成（v0）：** 真实的 OEE 与可用性计算、与 HYDRA-UMC-DATALAKE 的真实 HTTP 集成、真实的 HTTP API、真实的班次/日边界、版本化公式 + 输入指纹、逐字节可复现的 CSV 导出。
-* **下一步：** 真实的 `production_event` 数据源——连接 HYDRA-UMC-JOB-DISPATCHER，使其以此 schema 报告周期完成情况。
+* **下一步：** 真实的 `production_event` 数据源——让编排器（或机器人）以此 schema 报告周期完成情况。
 * **下一步：** 持久化/定时生成的报告（目前每份报告都是按需实时计算的）。
 * **稍后：** PDF 导出、邮件/投递机制，以及仪表盘。
 * 面向工具升级的 AI 驱动 ROI 分析，一旦存储了历史趋势数据，将与这些相同的 OEE 数据相连接。

@@ -14,6 +14,7 @@ interval is real, honest evidence the source was down, not just quiet.
 from __future__ import annotations
 
 import hashlib
+import math
 from dataclasses import dataclass
 
 from .provenance import Provenance
@@ -79,11 +80,16 @@ def compute_availability(
     """
     if window_end_ms <= window_start_ms:
         raise AvailabilityError("window_end_ms must be after window_start_ms")
-    if expected_interval_ms <= 0:
-        raise AvailabilityError("expected_interval_ms must be positive")
+    if not math.isfinite(expected_interval_ms) or expected_interval_ms <= 0:
+        raise AvailabilityError("expected_interval_ms must be a finite, positive number")
+    if not math.isfinite(gap_factor) or gap_factor < 1:
+        raise AvailabilityError("gap_factor must be a finite number of at least 1")
 
     threshold_ms = expected_interval_ms * gap_factor
-    points = sorted(t for t in timestamps_ms if window_start_ms <= t <= window_end_ms)
+    # The window is half open, [start, end): a sample exactly at the end
+    # belongs to the next window, so two consecutive reports never count it
+    # twice.
+    points = sorted(t for t in timestamps_ms if window_start_ms <= t < window_end_ms)
 
     downtime_periods: list[DowntimePeriod] = []
     cursor = window_start_ms

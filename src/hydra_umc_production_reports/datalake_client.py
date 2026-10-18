@@ -15,6 +15,7 @@ seam between them.
 """
 from __future__ import annotations
 
+import http.client
 import json
 import time
 import urllib.error
@@ -74,20 +75,30 @@ class DatalakeClient:
     def _get(self, path: str, params: dict[str, str | int]) -> object:
         query = urllib.parse.urlencode(params)
         url = f"{self.base_url}{path}?{query}"
-        last_error: urllib.error.URLError | None = None
+        last_error: Exception | None = None
         for attempt in range(1, self.max_attempts + 1):
             try:
                 with urllib.request.urlopen(url, timeout=self.timeout_s) as resp:
-                    return json.loads(resp.read())
+                    raw = resp.read()
             except urllib.error.HTTPError as e:
                 body = e.read().decode("utf-8", errors="replace")
                 raise DatalakeError(f"DATALAKE returned HTTP {e.code} for {path}: {body}") from e
-            except urllib.error.URLError as e:
+            except (urllib.error.URLError, OSError, http.client.HTTPException) as e:
+                # urlopen only wraps a failure to send the request in a
+                # URLError: a timeout or a reset while the answer is being
+                # read arrives as a bare TimeoutError / ConnectionResetError /
+                # RemoteDisconnected, and is just as transient.
                 last_error = e
                 if attempt < self.max_attempts:
                     self._sleep(self.retry_delay_seconds)
+                continue
+            try:
+                return json.loads(raw)
+            except ValueError as e:  # JSONDecodeError, or bytes that are not UTF-8
+                raise DatalakeError(f"DATALAKE answered {path} with a body that is not JSON: {e}") from e
+        reason = getattr(last_error, "reason", last_error)
         raise DatalakeError(
-            f"could not reach DATALAKE at {self.base_url} after {self.max_attempts} attempts: {last_error.reason}"
+            f"could not reach DATALAKE at {self.base_url} after {self.max_attempts} attempts: {reason}"
         ) from last_error
 
     def query(
@@ -114,13 +125,16 @@ class DatalakeClient:
             params["end"] = end
 
         raw = self._get("/query", params)
-        return [
-            Point(
-                source_id=p["sourceId"],
-                kind=p["kind"],
-                field=p["field"],
-                timestamp=p["timestamp"],
-                value=p["value"],
-            )
-            for p in raw
-        ]
+        try:
+            return [
+                Point(
+                    source_id=p["sourceId"],
+                    kind=p["kind"],
+                    field=p["field"],
+                    timestamp=p["timestamp"],
+                    value=p["value"],
+                )
+                for p in raw
+            ]
+        except (KeyError, TypeError) as e:
+            raise DatalakeError(f"DATALAKE answered /query with a shape this client does not know: {e!r}") from e

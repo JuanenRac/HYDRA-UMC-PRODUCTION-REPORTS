@@ -6,9 +6,9 @@
 # --addr 127.0.0.1 matches this module's own default (kept explicit here
 # for defense in depth) - every other internal-only API on this CM5
 # (Datalake, Anomaly-Detector, Job-Dispatcher, Telemetry-Collector) is
-# loopback-only, and this one has no authentication of its own either, so
-# it stays consistent rather than accidentally being the one API reachable
-# from the wider LAN.
+# loopback-only, so this one stays consistent. Another address needs a
+# bearer token: put PRODUCTION_REPORTS_TOKEN=... in
+# /etc/hydra-umc/production-reports.env (read below) and change --addr.
 [Unit]
 Description=HYDRA-UMC-PRODUCTION-REPORTS real KPI/OEE reporting API
 After=network-online.target hydra-umc-datalake.service
@@ -20,11 +20,13 @@ User=hydra-umc-production-reports
 Group=hydra-umc-production-reports
 WorkingDirectory=/opt/hydra-umc/production-reports
 Environment=PYTHONPATH=/opt/hydra-umc/production-reports/src
+EnvironmentFile=-/etc/hydra-umc/production-reports.env
 ExecStart=/usr/bin/python3 -m hydra_umc_production_reports.main --addr 127.0.0.1 --port 8099 --datalake-url http://127.0.0.1:8095
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
 PrivateTmp=true
+PrivateDevices=true
 ProtectHome=true
 ProtectSystem=strict
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6

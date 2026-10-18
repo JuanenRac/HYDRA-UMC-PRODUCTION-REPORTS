@@ -12,6 +12,7 @@ instance.
 """
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import replace
 
 from .availability import AvailabilityReport, compute_availability
@@ -24,11 +25,12 @@ from .provenance import Provenance
 # sample stored in HYDRA-UMC-DATALAKE: one Sample per completed cycle,
 # kind="production_event", with two fields written together at the same
 # timestamp - "good" (1.0/0.0) and "cycleTimeS" (seconds). No other
-# project in the ecosystem writes this kind yet (HYDRA-UMC-JOB-DISPATCHER
-# would be the real real-world source once it's wired to report
-# completions here) - documented explicitly as this project's own
-# convention rather than presented as an established ecosystem-wide
-# schema.
+# project in the ecosystem writes this kind yet - documented explicitly as
+# this project's own convention rather than presented as an established
+# ecosystem-wide schema. The natural producers are whatever knows when a
+# cycle starts and ends (the orchestrator, or the robot itself):
+# HYDRA-UMC-JOB-DISPATCHER keeps no timestamps and cannot compute a cycle
+# time.
 PRODUCTION_EVENT_KIND = "production_event"
 GOOD_FIELD = "good"
 CYCLE_TIME_FIELD = "cycleTimeS"
@@ -56,6 +58,11 @@ class ReportError(RuntimeError):
     wasn't usable - rather than a bare exception."""
 
 
+def _check_window(start_ms: int, end_ms: int) -> None:
+    if end_ms <= start_ms:
+        raise ReportError("end must be after start")
+
+
 def _query_all_or_raise(client: DatalakeClient, *, source_id: str, kind: str, field: str, start_ms: int, end_ms: int) -> list[Point]:
     """Same real query() call every caller below needs, with real
     truncation detection: if the result count reaches MAX_POINTS_PER_QUERY,
@@ -64,7 +71,10 @@ def _query_all_or_raise(client: DatalakeClient, *, source_id: str, kind: str, fi
     part missing here) - raising a clear ReportError is the honest
     outcome, not silently computing a report from an incomplete window
     that looks complete."""
-    points = client.query(source_id=source_id, kind=kind, field=field, start=start_ms, end=end_ms, limit=MAX_POINTS_PER_QUERY)
+    # DATALAKE's end is inclusive and a report window is [start, end): asking
+    # for end - 1 keeps a sample exactly on the boundary in the next window
+    # only, instead of in both.
+    points = client.query(source_id=source_id, kind=kind, field=field, start=start_ms, end=end_ms - 1, limit=MAX_POINTS_PER_QUERY)
     if len(points) >= MAX_POINTS_PER_QUERY:
         raise ReportError(
             f"query for source={source_id!r} kind={kind!r} field={field!r} returned "
@@ -92,15 +102,23 @@ def oee_from_datalake(
     computes a real OEE report from what actually came back - not from
     synthetic or assumed data.
     """
+    _check_window(start_ms, end_ms)
     good_points = _query_all_or_raise(client, source_id=source_id, kind=PRODUCTION_EVENT_KIND, field=GOOD_FIELD, start_ms=start_ms, end_ms=end_ms)
     cycle_points = _query_all_or_raise(client, source_id=source_id, kind=PRODUCTION_EVENT_KIND, field=CYCLE_TIME_FIELD, start_ms=start_ms, end_ms=end_ms)
 
-    cycle_by_ts = {p.timestamp: p.value for p in cycle_points}
+    # Pair the two fields of a cycle by timestamp, in order when several
+    # cycles share a millisecond (a dict keyed by timestamp lost all but the
+    # last cycle time and paired every "good" of that millisecond with it).
+    # A reading with no partner on either side, or whose "good" is not
+    # exactly 0 or 1, cannot be used and is counted in `unmatched`.
+    cycles_at: dict[int, list[float]] = defaultdict(list)
+    for p in cycle_points:
+        cycles_at[p.timestamp].append(p.value)
     events: list[ProductionEvent] = []
     unmatched = 0
     for gp in good_points:
-        cycle_time = cycle_by_ts.get(gp.timestamp)
-        if cycle_time is None:
+        waiting = cycles_at.get(gp.timestamp)
+        if not waiting:
             # A "good" field with no matching "cycleTimeS" at the exact
             # same timestamp - a real, honest gap (the two fields are
             # meant to be written together in one Sample, see the
@@ -108,7 +126,12 @@ def oee_from_datalake(
             # which would corrupt the Performance calculation.
             unmatched += 1
             continue
-        events.append(ProductionEvent(timestamp_ms=gp.timestamp, good=gp.value != 0.0, cycle_time_s=cycle_time))
+        cycle_time = waiting.pop(0)
+        if gp.value not in (0.0, 1.0):
+            unmatched += 1  # NaN, or any other value, is neither a good nor a bad part
+            continue
+        events.append(ProductionEvent(timestamp_ms=gp.timestamp, good=gp.value == 1.0, cycle_time_s=cycle_time))
+    unmatched += sum(len(left) for left in cycles_at.values())  # cycle times nobody reported a result for
 
     if not events:
         reason = "no production_event data found for this source/window"
@@ -127,9 +150,12 @@ def oee_from_datalake(
     # actually exist, with no trace anywhere that any were dropped - an
     # incomplete cycle just disappeared from the report. Attached to
     # every successful report now, not only the all-failed case.
+    # A planned time longer than the window itself cannot be right either.
+    planned_exceeds_window = planned_time_s > (end_ms - start_ms) / 1000
     return replace(
         report,
         unmatched_count=unmatched,
+        inconsistent_input=report.inconsistent_input or planned_exceeds_window,
         provenance=Provenance(
             source_id=source_id,
             kind=PRODUCTION_EVENT_KIND,
@@ -158,6 +184,7 @@ def availability_from_datalake(
     HYDRA-UMC-TELEMETRY-COLLECTOR already feeds HYDRA-UMC-DATALAKE) and
     computes real downtime from real gaps in when it actually arrived.
     """
+    _check_window(start_ms, end_ms)
     points = _query_all_or_raise(client, source_id=source_id, kind=kind, field=field, start_ms=start_ms, end_ms=end_ms)
     timestamps = [p.timestamp for p in points]
     report = compute_availability(

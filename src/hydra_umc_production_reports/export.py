@@ -18,6 +18,10 @@ from dataclasses import asdict
 from .availability import AvailabilityReport
 from .oee import OEEReport
 
+# Version of the CSV/HTML layout itself (not of the formulas): 2 added the
+# discarded-cycle count and the input-consistency flag to the OEE export.
+EXPORT_VERSION = 2
+
 OEE_FIELD_ORDER = [
     "formula_version",
     "input_fingerprint",
@@ -28,6 +32,8 @@ OEE_FIELD_ORDER = [
     "total_count",
     "good_count",
     "operating_time_s",
+    "unmatched_count",
+    "inconsistent_input",
 ]
 
 AVAILABILITY_FIELD_ORDER = [
@@ -49,14 +55,16 @@ def _format_value(value: object) -> str:
 # A cell that starts with one of these is read as a formula by Excel, LibreOffice and
 # Google Sheets (CWE-1236): a source id or a filter value such as `=HYPERLINK(...)`,
 # which comes from a request or from a device, would run when the CSV is opened.
-_FORMULA_TRIGGERS = ("=", "+", "-", "@", "\t", "\r")
+_FORMULA_TRIGGERS = ("=", "+", "-", "@", "\t", "\r", "\n", "|", "%")
 
 
 def _csv_text(value: str) -> str:
     """A free-text cell made inert for a spreadsheet: a leading apostrophe is the
     standard way to make it plain text. Numbers are never passed through here
     (a negative number legitimately starts with "-")."""
-    return "'" + value if value.startswith(_FORMULA_TRIGGERS) else value
+    # Leading spaces are skipped by some spreadsheets before they decide
+    # whether a cell is a formula, so the check looks past them.
+    return "'" + value if value.lstrip(" ").startswith(_FORMULA_TRIGGERS) else value
 
 
 def _render_csv(
@@ -73,6 +81,7 @@ def _render_csv(
     writer.writerow(["sourceId", _csv_text(source_id)])
     writer.writerow(["startMs", start_ms])
     writer.writerow(["endMs", end_ms])
+    writer.writerow(["exportVersion", EXPORT_VERSION])
     provenance = row.get("provenance")
     if provenance:
         writer.writerow(["pointsUsed", provenance["points_used"]])
@@ -217,6 +226,13 @@ def _render_html(
     field_rows = "".join(
         f"<tr><th>{_escape_html(field)}</th><td>{_escape_html(_format_value(row[field]))}</td></tr>" for field in field_order
     )
+    provenance = row.get("provenance")
+    provenance_rows = ""
+    if provenance:
+        provenance_rows = (
+            f"<tr><th>pointsUsed</th><td>{_escape_html(provenance['points_used'])}</td></tr>"
+            f"<tr><th>generatorVersion</th><td>{_escape_html(provenance['generator_version'])}</td></tr>"
+        )
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -237,7 +253,8 @@ th {{ color: #6b7280; font-weight: 600; }}
 <tr><th>sourceId</th><td>{_escape_html(source_id)}</td></tr>
 <tr><th>startMs</th><td>{start_ms}</td></tr>
 <tr><th>endMs</th><td>{end_ms}</td></tr>
-{filter_rows}
+<tr><th>exportVersion</th><td>{EXPORT_VERSION}</td></tr>
+{provenance_rows}{filter_rows}
 </table>
 <div class="chart">
 {chart_svg}

@@ -16,7 +16,7 @@
 
 ---
 
-**Verificación de honestidad - qué funciona de verdad hoy:** la fórmula real de OEE (`oee.py`), el cálculo real de disponibilidad a partir de huecos de telemetría (`availability.py`), el cliente HTTP real hacia el `GET /query` propio de HYDRA-UMC-DATALAKE (`datalake_client.py`), la fuente única de verdad de los límites de turno/día, incluyendo un turno de noche real que cruza la medianoche (`shift.py`), la exportación CSV reproducible byte a byte (`export.py`), y la API HTTP real que expone todo esto (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`) son reales y están probados (89 tests, `pytest`). Lo que NO está implementado, pese a aparecer en "Características Clave" más abajo como si ya funcionara: no existe ninguna exportación a PDF en todo este código (`export.py` solo escribe CSV y una página HTML autónoma), no hay ninguna programación de informes diarios/semanales/mensuales, y no hay ningún mecanismo de email/entrega para "enviar" nada a un gerente - cada informe se calcula en vivo, bajo demanda, exactamente una vez por llamada HTTP. Tampoco existe todavía una fuente real de datos `production_event` (nada en este ecosistema escribe ese esquema hoy, ver ARQUITECTURA más abajo), así que el OEE nunca se ha probado contra un HYDRA-UMC-JOB-DISPATCHER real en producción - solo contra un DATALAKE falso en los tests y escenarios construidos a mano. Ver `CHANGELOG.md` para lo que ya se ha entregado exactamente, y la HOJA DE RUTA más abajo para lo que sigue abierto.
+**Verificación de honestidad - qué funciona de verdad hoy:** la fórmula real de OEE (`oee.py`), el cálculo real de disponibilidad a partir de huecos de telemetría (`availability.py`), el cliente HTTP real hacia el `GET /query` propio de HYDRA-UMC-DATALAKE (`datalake_client.py`), la fuente única de verdad de los límites de turno/día, incluyendo un turno de noche real que cruza la medianoche (`shift.py`), la exportación CSV reproducible byte a byte (`export.py`), y la API HTTP real que expone todo esto (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`) son reales y están probados (122 tests, `pytest`). Lo que NO está implementado, pese a aparecer en "Características Clave" más abajo como si ya funcionara: no existe ninguna exportación a PDF en todo este código (`export.py` solo escribe CSV y una página HTML autónoma), no hay ninguna programación de informes diarios/semanales/mensuales, y no hay ningún mecanismo de email/entrega para "enviar" nada a un gerente - cada informe se calcula en vivo, bajo demanda, exactamente una vez por llamada HTTP. Tampoco existe todavía una fuente real de datos `production_event` (nada en este ecosistema escribe ese esquema hoy, ver ARQUITECTURA más abajo), así que el OEE nunca se ha probado contra un HYDRA-UMC-JOB-DISPATCHER real en producción - solo contra un DATALAKE falso en los tests y escenarios construidos a mano. Ver `CHANGELOG.md` para lo que ya se ha entregado exactamente, y la HOJA DE RUTA más abajo para lo que sigue abierto.
 
 ---
 
@@ -34,6 +34,7 @@ Calcula el **OEE (Efectividad General del Equipo)** de todo el enjambre, identif
 * 🕐 **Límites de Turno/Día:** `shift.py` da a cada informe una única fuente real de verdad sobre dónde empieza y termina un turno o día natural - incluyendo un turno de noche real que cruza la medianoche. *(implementado)*
 * 🧾 **Fórmulas Versionadas + Trazabilidad:** Cada informe lleva su `formula_version` real y una `input_fingerprint` sha256 sobre los datos exactos que lo produjeron. *(implementado)*
 * 📤 **Exportación CSV Reproducible:** `GET /reports/{oee,availability}/export` - salida idéntica byte a byte para entradas idénticas, no solo "suficientemente parecida". *(implementado)* Una celda de texto libre (id de fuente, valor de filtro) que empiece por `=`, `+`, `-` o `@` recibe un apóstrofo inicial, para que una hoja de cálculo no la ejecute como fórmula.
+* 🧱 **Seguro de exponer y honesto con sus entradas (v0):** la API escucha en `127.0.0.1` salvo que se indique otra cosa, y otra dirección exige un token bearer (`--token` / `PRODUCTION_REPORTS_TOKEN`) o `--allow-anonymous`; solo se construyen unos pocos informes a la vez (`503` más allá); los números no finitos se rechazan con `400`; las ventanas son semiabiertas `[start, end)`, así que una muestra en el borde cuenta en un solo informe; `day=` y `shift=` derivan la ventana del horario de turnos; `format=html` en una exportación devuelve una página HTML autocontenida; un informe dice cuándo su entrada es incoherente (`inconsistent_input`) y cuántas lecturas descartó (`unmatched_count`, también en las exportaciones). *(implementado)*
 
 ---
 
@@ -43,9 +44,11 @@ Calcula el **OEE (Efectividad General del Equipo)** de todo el enjambre, identif
 flowchart LR
     LAKE["HYDRA-UMC-DATALAKE"] --> PROC["Motor Procesador de Informes"]
     PROC --> OEE["Cálculo de OEE y KPI"]
-    OEE --> TPL["Plantillas de Informes (PDF/HTML)"]
-    TPL --> DISP["Dashboard / Email / Exportar"]
+    OEE -.-> TPL["Plantillas de Informes (PDF/HTML)"]
+    TPL -.-> DISP["Dashboard / Email / Exportar"]
 ```
+
+> Las flechas punteadas están previstas, no implementadas: no hay PDF, plantillas de informes, panel ni envío por correo. Las exportaciones son CSV y una página HTML autocontenida.
 
 ---
 
@@ -53,7 +56,7 @@ flowchart LR
 
 * **Por qué es hermano, no un submódulo, de HYDRA-UMC-DATALAKE.** La generación de informes es un trabajo de consulta+cálculo periódico y de solo lectura sobre telemetría ya almacenada - mantenerlo separado significa que una generación de informe nunca compite con las propias escrituras en tiempo real de HYDRA-UMC-TELEMETRY-COLLECTOR por los recursos del mismo almacén. Este proyecto no tiene base de datos propia.
 * **Integración HTTP real, no una librería compartida.** `datalake_client.py` habla con una instancia real de HYDRA-UMC-DATALAKE por HTTP plano (`GET /query`), y deliberadamente NO importa el paquete Python de DATALAKE directamente aunque ambos convivan hoy en el mismo entorno de desarrollo - HTTP real es el punto de integración real y desacoplado que coincide con cómo se hablarían de verdad repos/servicios separados en producción.
-* **El schema `production_event` es la convención propia v0 de este proyecto, no un estándar del ecosistema.** El OEE necesita saber, por cada ciclo completado, si la pieza salió buena y cuánto tardó el ciclo. Este proyecto define eso como un `Sample` de DATALAKE por ciclo, `kind="production_event"`, con dos campos escritos juntos en el mismo timestamp: `"good"` (1.0/0.0) y `"cycleTimeS"`. Ningún otro proyecto escribe todavía este kind - HYDRA-UMC-JOB-DISPATCHER sería la fuente real de producción una vez que reporte finalizaciones de esta forma.
+* **El schema `production_event` es la convención propia v0 de este proyecto, no un estándar del ecosistema.** El OEE necesita saber, por cada ciclo completado, si la pieza salió buena y cuánto tardó el ciclo. Este proyecto define eso como un `Sample` de DATALAKE por ciclo, `kind="production_event"`, con dos campos escritos juntos en el mismo timestamp: `"good"` (1.0/0.0) y `"cycleTimeS"`. Ningún otro proyecto escribe todavía este kind - El productor natural es lo que sabe cuándo empieza y termina un ciclo (el orquestador, o el propio robot): HYDRA-UMC-JOB-DISPATCHER no guarda marcas de tiempo y no puede calcular un tiempo de ciclo.
 * **La disponibilidad funciona contra CUALQUIER stream de telemetría existente, a propósito.** A diferencia del OEE, `availability.py` no necesita en absoluto la convención `production_event` - toma cualquier serie de timestamps ya presente en DATALAKE (p. ej. muestras `motor_temp` que HYDRA-UMC-TELEMETRY-COLLECTOR ya escribe) y marca como downtime real un hueco entre muestras consecutivas mayor que `expected_interval_ms x gap_factor`. Esto es justo lo que hoy le permite a este proyecto "hablar" con sus hermanos de telemetría, antes de que ningún proyecto escriba datos `production_event` de verdad.
 * **Performance y Availability están acotados a `[0, 1]`.** Un ciclo real puede ir más rápido que una cifra "ideal" conservadora, o el tiempo operativo puede superar una ventana planificada mal configurada; reportar >100% sería defendible aritméticamente pero engañoso en la práctica, así que ambos se limitan.
 * **Los campos `production_event` sin emparejar se cuentan y se reportan, nunca se rellenan en silencio.** Si una lectura `"good"` no tiene un `"cycleTimeS"` emparejado en el mismo timestamp exacto (una escritura parcial/malformada), se excluye y el número de lecturas excluidas se incluye en el error/respuesta en vez de asumir un tiempo de ciclo de 0s, lo que corrompería la cifra de Performance.
@@ -128,7 +131,7 @@ curl "http://localhost:8099/reports/availability?sourceId=robot-1&kind=motor_tem
 
 ## 🚀 HOJA DE RUTA
 * **Hecho (v0):** cálculo real de OEE y disponibilidad, integración HTTP real con HYDRA-UMC-DATALAKE, API HTTP real, límites reales de turno/día, fórmulas versionadas + huella de entrada, exportación CSV reproducible byte a byte.
-* **Siguiente:** una fuente real de datos `production_event` - conectar HYDRA-UMC-JOB-DISPATCHER para que reporte finalizaciones de ciclo con este schema.
+* **Siguiente:** una fuente real de datos `production_event` - que el orquestador (o el robot) reporte finalizaciones de ciclo con este schema.
 * **Siguiente:** informes persistentes/programados (hoy cada informe se calcula en vivo, bajo demanda).
 * **Más adelante:** exportación a PDF, un mecanismo de email/entrega, y un dashboard.
 * Análisis de ROI impulsado por IA para actualizaciones de herramientas, conectado a estos mismos datos de OEE una vez que se almacenen tendencias históricas.

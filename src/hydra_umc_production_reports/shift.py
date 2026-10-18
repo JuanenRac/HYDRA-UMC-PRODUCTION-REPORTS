@@ -49,13 +49,22 @@ class ShiftSchedule:
             raise ShiftError("first_shift_start_hour must be in [0, 24)")
 
     @property
+    def shift_length_minutes(self) -> int:
+        """The shift length in whole minutes. Floating-point hours cannot be
+        trusted to divide a day exactly (24 % 4.8 is not 0 in floating
+        point although five shifts of 4 h 48 min fill a day), so every
+        division below is done on whole minutes."""
+        return round(self.shift_length_hours * 60)
+
+    @property
     def shifts_per_day(self) -> int:
-        """Only defined when shift_length_hours evenly divides 24h - a
+        """Only defined when the shift length evenly divides 24h - a
         caller relying on a fixed shift count for an uneven schedule is a
         real configuration bug, not something to silently round."""
-        if (24 % self.shift_length_hours) != 0:
+        minutes = self.shift_length_minutes
+        if minutes <= 0 or (24 * 60) % minutes != 0:
             raise ShiftError("shift_length_hours must evenly divide 24 to have a fixed shifts_per_day")
-        return int(24 // self.shift_length_hours)
+        return (24 * 60) // minutes
 
 
 def shift_window_ms(schedule: ShiftSchedule, day: date, shift_index: int) -> tuple[int, int]:
@@ -66,7 +75,7 @@ def shift_window_ms(schedule: ShiftSchedule, day: date, shift_index: int) -> tup
     if shift_index < 0:
         raise ShiftError("shift_index must be >= 0")
     day_start_ms, _ = day_window_ms(day, timezone_offset_minutes=schedule.timezone_offset_minutes)
-    shift_length_ms = round(schedule.shift_length_hours * MS_PER_HOUR)
+    shift_length_ms = schedule.shift_length_minutes * 60_000
     first_start_ms = day_start_ms + round(schedule.first_shift_start_hour * MS_PER_HOUR)
     start_ms = first_start_ms + shift_index * shift_length_ms
     return start_ms, start_ms + shift_length_ms
@@ -78,7 +87,7 @@ def shift_index_for_timestamp(schedule: ShiftSchedule, timestamp_ms: int) -> tup
     `shift_index` within `schedule.shifts_per_day` for that day - the
     schedule must evenly divide 24h (see `shifts_per_day`)."""
     schedule.shifts_per_day  # raises ShiftError for an uneven schedule
-    shift_length_ms = round(schedule.shift_length_hours * MS_PER_HOUR)
+    shift_length_ms = schedule.shift_length_minutes * 60_000
     first_start_ms = round(schedule.first_shift_start_hour * MS_PER_HOUR)
     local_ms = timestamp_ms + schedule.timezone_offset_minutes * 60_000
     shifted = local_ms - first_start_ms

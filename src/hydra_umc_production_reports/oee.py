@@ -64,16 +64,21 @@ class OEEReport:
     # Where the numbers came from (see provenance.py); None for a direct
     # compute_oee() call, which has no source or window of its own.
     provenance: Provenance | None = None
+    # True when the events add up to more operating time than the planned
+    # time (overlapping cycles, several stations under one source id, cycles
+    # that began before the window): availability is then clamped to 100%
+    # and the product understates the real figure, so the numbers cannot be
+    # taken at face value.
+    inconsistent_input: bool = False
 
 
 def _fingerprint_events(events: list[ProductionEvent]) -> str:
     """A real, deterministic fingerprint of the exact production events
-    that produced this report - same events (any order) -> same
-    fingerprint; any real difference in the input -> a different one.
-    Not a security hash, just traceability (audit line 654)."""
-    canonical = "\n".join(
-        f"{e.timestamp_ms}|{int(e.good)}|{e.cycle_time_s!r}" for e in sorted(events, key=lambda e: e.timestamp_ms)
-    )
+    that produced this report - same events (any order, also when several
+    share a timestamp) -> same fingerprint; any real difference in the
+    input -> a different one. Not a security hash, just traceability."""
+    ordered = sorted(events, key=lambda e: (e.timestamp_ms, int(e.good), e.cycle_time_s))
+    canonical = "\n".join(f"{e.timestamp_ms}|{int(e.good)}|{e.cycle_time_s!r}" for e in ordered)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
@@ -102,10 +107,12 @@ def compute_oee(
     """
     if not events:
         raise OEEError("cannot compute OEE from zero production events")
-    if planned_time_s <= 0:
-        raise OEEError("planned_time_s must be positive")
-    if ideal_cycle_time_s <= 0:
-        raise OEEError("ideal_cycle_time_s must be positive")
+    # `<= 0` lets NaN through (every comparison with NaN is false) and
+    # accepts infinity, which would turn the report into NaN or 0%.
+    if not math.isfinite(planned_time_s) or planned_time_s <= 0:
+        raise OEEError("planned_time_s must be a finite, positive number")
+    if not math.isfinite(ideal_cycle_time_s) or ideal_cycle_time_s <= 0:
+        raise OEEError("ideal_cycle_time_s must be a finite, positive number")
     # `sum(e.cycle_time_s for e in events)` below accepted any
     # float, including negative or non-finite (NaN/inf) values, with no
     # per-event check. A single bad event (a real clock-skew/sensor
@@ -141,4 +148,5 @@ def compute_oee(
         operating_time_s=operating_time_s,
         formula_version=FORMULA_VERSION,
         input_fingerprint=_fingerprint_events(events),
+        inconsistent_input=operating_time_s > planned_time_s,
     )

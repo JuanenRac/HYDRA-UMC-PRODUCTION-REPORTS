@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "ecosystem": "HYDRA-UMC",
   "name": "HYDRA-UMC-PRODUCTION-REPORTS",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "role": "api",
   "stack": "python",
   "technologies": [
@@ -22,7 +22,7 @@
   },
   "service": {
     "port": 8099,
-    "health_path": "/stats",
+    "health_path": "/health",
     "systemd_unit": "hydra-umc-production-reports.service"
   }
 }

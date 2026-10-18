@@ -16,9 +16,10 @@ one place all of them are written up in full.
    reports.py defines this project's own v0 convention for a
    "production event" DATALAKE sample (kind="production_event", the
    "good"/"cycleTimeS" fields OEE needs) - but no project in the
-   ecosystem writes that kind yet. HYDRA-UMC-JOB-DISPATCHER would be the
-   real production source once it is wired to report mission/cycle
-   completions this way. Until then, OEE reports against real
+   ecosystem writes that kind yet. The natural producer is whatever knows
+   when a cycle starts and ends: the orchestrator (it sees start and
+   complete of every mission), or the robot itself. HYDRA-UMC-JOB-DISPATCHER
+   keeps no timestamps per job and cannot compute a cycle time. Until then, OEE reports against real
    production_event data can only be exercised with hand-written or
    test-fixture samples, not a real live production feed - `availability.py`
    deliberately does not depend on this convention at all, which is why

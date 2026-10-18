@@ -16,10 +16,12 @@ real live query against DATALAKE per request.
 from __future__ import annotations
 
 import argparse
+import ipaddress
+import os
 import sys
 
 from . import __version__
-from .api import ReportsServer
+from .api import DEFAULT_MAX_CONCURRENT_REPORTS, ReportsServer
 from .datalake_client import DatalakeClient
 
 PROJECT_NAME = "HYDRA-UMC-PRODUCTION-REPORTS"
@@ -27,6 +29,28 @@ ROLE = (
     "Production-Reports - automated KPI/OEE reporting engine, processes "
     "HYDRA-UMC-DATALAKE history into production efficiency reports."
 )
+
+
+def is_loopback_addr(addr: str) -> bool:
+    """True for the addresses that cannot be reached from another machine."""
+    if addr.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(addr.strip("[]")).is_loopback
+    except ValueError:
+        return False
+
+
+def startup_problem(addr: str, token: str | None, allow_anonymous: bool) -> str | None:
+    """Why this process must not start: the reports are commercially
+    sensitive and each one can load hundreds of thousands of points, so an
+    open API on a network address is refused unless that was asked for."""
+    if is_loopback_addr(addr) or token or allow_anonymous:
+        return None
+    return (
+        f"refusing to listen on {addr} without a token: set --token (or PRODUCTION_REPORTS_TOKEN), "
+        "bind --addr 127.0.0.1, or pass --allow-anonymous to run an open API on purpose"
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -38,15 +62,40 @@ def main(argv: list[str] | None = None) -> int:
         default="http://localhost:8095",
         help="base URL of the HYDRA-UMC-DATALAKE instance to build reports from",
     )
+    parser.add_argument(
+        "--token",
+        default=os.environ.get("PRODUCTION_REPORTS_TOKEN", ""),
+        help="bearer token every route except /health requires (default: the PRODUCTION_REPORTS_TOKEN environment variable)",
+    )
+    parser.add_argument(
+        "--allow-anonymous",
+        action="store_true",
+        help="allow an address other than loopback without a token (an open lab instance)",
+    )
+    parser.add_argument(
+        "--max-concurrent-reports",
+        type=int,
+        default=DEFAULT_MAX_CONCURRENT_REPORTS,
+        help="reports built at the same time; more requests get 503",
+    )
     args = parser.parse_args(argv)
+
+    problem = startup_problem(args.addr, args.token, args.allow_anonymous)
+    if problem:
+        print(f"[production-reports] fatal: {problem}", file=sys.stderr)
+        return 2
 
     print(f"{PROJECT_NAME} v{__version__}")
     print(ROLE)
 
     client = DatalakeClient(args.datalake_url)
-    server = ReportsServer((args.addr, args.port), client)
+    server = ReportsServer(
+        (args.addr, args.port), client, token=args.token, max_concurrent_reports=max(1, args.max_concurrent_reports)
+    )
     print(f"[production-reports] HTTP API listening on {args.addr}:{args.port} (datalake={args.datalake_url})")
-    print("[production-reports] GET /reports/oee, GET /reports/availability, GET /stats")
+    print("[production-reports] GET /reports/oee, GET /reports/availability, their /export, GET /stats, GET /health")
+    if args.token:
+        print("[production-reports] every route except /health requires a bearer token")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
