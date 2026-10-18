@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "ecosystem": "HYDRA-UMC",
   "name": "HYDRA-UMC-PRODUCTION-REPORTS",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "role": "api",
   "stack": "python",
   "technologies": [
@@ -11,7 +11,7 @@
     "http.server"
   ],
   "deployment_target": "cm5",
-  "maturity": "established",
+  "maturity": "functional",
   "family": "Data & Analytics",
   "parent": "HYDRA-UMC-DATALAKE",
   "build": "python tools/build_test.py",

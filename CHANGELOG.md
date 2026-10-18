@@ -18,6 +18,11 @@ semantic-versioning judgment calls:
 
 ---
 
+## [0.1.5]
+
+- Maturity is functional: nothing here has been verified on real hardware yet.
+- The READMEs say, in the eight languages, what is planned and what has only been tested against fakes, emulators or fixtures, and carry a short safety and security status note.
+
 ## [0.1.4] - Reports that refuse bad numbers, do not double-count a boundary and say what they dropped
 
 - **Non-finite numbers are refused.** `plannedTimeS=nan` produced `NaN` availability and OEE (and `NaN` is not JSON), `expectedIntervalMs=nan` or `inf` with no samples at all reported 100% availability for a machine that sent nothing, and `gapFactor=nan` or `-1` did the same or the opposite. Planned time, ideal cycle time and expected interval must be finite and greater than 0, `gapFactor` finite and at least 1, and responses are written with `allow_nan=False`, so a bad value can no longer leave as a number that is not JSON.
