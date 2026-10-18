@@ -20,6 +20,17 @@
 
 ---
 
+## 📋 At a glance
+
+| | |
+|---|---|
+| Version | `0.1.4` |
+| Maturity | Established |
+| Tests | 122 (`pytest`) |
+| Stack | Python / real OEE formula / http.server |
+| Target | The Raspberry Pi CM5 of a HYDRA-UMC cell |
+| On real hardware | Not yet: no run on real hardware is recorded for this version |
+
 ## 1. 🛠️ TECHNICAL OVERVIEW
 
 **HYDRA-UMC-PRODUCTION-REPORTS** is the analytical brain for factory management. It processes raw data from the Datalake to generate automated, high-level reports on production efficiency, quality, and machine availability.

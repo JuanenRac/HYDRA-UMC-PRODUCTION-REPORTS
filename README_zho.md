@@ -20,6 +20,17 @@
 
 ---
 
+## 📋 速览
+
+| | |
+|---|---|
+| 版本 | `0.1.4` |
+| 成熟度 | 成熟 |
+| 测试 | 122 (`pytest`) |
+| 技术栈 | Python / real OEE formula / http.server |
+| 目标 | HYDRA-UMC 工作单元的 Raspberry Pi CM5 |
+| 真实硬件 | 尚未：此版本没有在真实硬件上运行的记录 |
+
 ## 1. 🛠️ 技术概述
 
 **HYDRA-UMC-PRODUCTION-REPORTS** 是工厂管理的分析大脑。它处理来自数据
