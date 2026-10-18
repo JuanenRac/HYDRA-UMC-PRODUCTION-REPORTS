@@ -27,6 +27,7 @@ from __future__ import annotations
 import os
 import sys
 import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -36,6 +37,10 @@ DATALAKE_ROOT = Path(
     os.environ.get("HYDRA_UMC_DATALAKE_ROOT", str(THIS_REPO.parent / "HYDRA-UMC-DATALAKE"))
 )
 DATALAKE_SRC = DATALAKE_ROOT / "src"
+# The DATALAKE only accepts epoch MILLISECONDS from the past (seconds, negative
+# and future values are rejected), so every sample sits at a real instant an
+# hour ago, on a whole second, and all the windows are relative to it.
+BASE_MS = (int(time.time()) - 3600) * 1000
 
 from hydra_umc_production_reports.availability import compute_availability  # noqa: E402
 from hydra_umc_production_reports.datalake_client import DatalakeClient  # noqa: E402
@@ -90,17 +95,17 @@ def _ingest_sample(base_url: str, *, source_id: str, kind: str, timestamp_ms: in
 
 def test_real_gap_in_ingested_telemetry_becomes_real_reported_downtime(datalake_url):
     source_id, kind, field = "cm5-test-01", "motor_temp", "value"
-    window_start_ms, window_end_ms = 0, 100_000
+    window_start_ms, window_end_ms = BASE_MS, BASE_MS + 100_000
     interval_ms = 1_000
 
     # Real samples every 1s for the first 20s (0..20000 inclusive).
     for t in range(0, 20_001, interval_ms):
-        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=t, value=42.0)
+        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=BASE_MS + t, value=42.0)
     # A real 40-second outage: NO samples arrive between 20s and 60s -
     # the real, live gap this whole chain exists to surface as downtime.
     # Real samples resume every 1s for the last 40s (60000..100000).
     for t in range(60_000, 100_001, interval_ms):
-        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=t, value=42.0)
+        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=BASE_MS + t, value=42.0)
 
     client = DatalakeClient(datalake_url)
     report = availability_from_datalake(
@@ -110,8 +115,8 @@ def test_real_gap_in_ingested_telemetry_becomes_real_reported_downtime(datalake_
 
     assert len(report.downtime_periods) == 1
     downtime = report.downtime_periods[0]
-    assert downtime.start_ms == 20_000
-    assert downtime.end_ms == 60_000
+    assert downtime.start_ms == BASE_MS + 20_000
+    assert downtime.end_ms == BASE_MS + 60_000
     assert downtime.duration_ms == 40_000
     assert report.downtime_ms == 40_000
     assert report.availability == pytest.approx(0.6)
@@ -121,12 +126,12 @@ def test_real_continuous_telemetry_with_no_gap_reports_full_availability(datalak
     source_id, kind, field = "cm5-test-02", "motor_temp", "value"
     interval_ms = 1_000
     for t in range(0, 50_001, interval_ms):
-        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=t, value=41.0)
+        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=BASE_MS + t, value=41.0)
 
     client = DatalakeClient(datalake_url)
     report = availability_from_datalake(
         client, source_id=source_id, kind=kind, field=field,
-        start_ms=0, end_ms=50_000, expected_interval_ms=float(interval_ms),
+        start_ms=BASE_MS, end_ms=BASE_MS + 50_000, expected_interval_ms=float(interval_ms),
     )
     assert report.downtime_periods == []
     assert report.availability == pytest.approx(1.0)
@@ -139,7 +144,7 @@ def test_real_source_with_zero_ingested_samples_is_reported_as_fully_down(datala
     client = DatalakeClient(datalake_url)
     report = availability_from_datalake(
         client, source_id="cm5-never-reported", kind="motor_temp", field="value",
-        start_ms=0, end_ms=10_000, expected_interval_ms=1_000.0,
+        start_ms=BASE_MS, end_ms=BASE_MS + 10_000, expected_interval_ms=1_000.0,
     )
     assert len(report.downtime_periods) == 1
     assert report.downtime_periods[0].duration_ms == 10_000
@@ -158,16 +163,16 @@ def test_real_out_of_order_telemetry_arrival_reports_the_same_downtime(datalake_
     interval_ms = 1_000
     ordered = list(range(0, 20_001, interval_ms)) + list(range(60_000, 100_001, interval_ms))
     for t in reversed(ordered):
-        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=t, value=42.0)
+        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=BASE_MS + t, value=42.0)
 
     client = DatalakeClient(datalake_url)
     report = availability_from_datalake(
         client, source_id=source_id, kind=kind, field=field,
-        start_ms=0, end_ms=100_000, expected_interval_ms=float(interval_ms),
+        start_ms=BASE_MS, end_ms=BASE_MS + 100_000, expected_interval_ms=float(interval_ms),
     )
     assert len(report.downtime_periods) == 1
-    assert report.downtime_periods[0].start_ms == 20_000
-    assert report.downtime_periods[0].end_ms == 60_000
+    assert report.downtime_periods[0].start_ms == BASE_MS + 20_000
+    assert report.downtime_periods[0].end_ms == BASE_MS + 60_000
     assert report.downtime_ms == 40_000
     assert report.availability == pytest.approx(0.6)
 
@@ -182,14 +187,14 @@ def test_real_duplicate_telemetry_ingestion_does_not_distort_availability(datala
     interval_ms = 1_000
     for _pass in range(3):  # deliver every sample three times
         for t in range(0, 20_001, interval_ms):
-            _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=t, value=42.0)
+            _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=BASE_MS + t, value=42.0)
         for t in range(60_000, 100_001, interval_ms):
-            _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=t, value=42.0)
+            _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=BASE_MS + t, value=42.0)
 
     client = DatalakeClient(datalake_url)
     report = availability_from_datalake(
         client, source_id=source_id, kind=kind, field=field,
-        start_ms=0, end_ms=100_000, expected_interval_ms=float(interval_ms),
+        start_ms=BASE_MS, end_ms=BASE_MS + 100_000, expected_interval_ms=float(interval_ms),
     )
     assert len(report.downtime_periods) == 1
     assert report.downtime_ms == 40_000
@@ -208,25 +213,25 @@ def test_real_late_backfill_of_missing_samples_closes_a_reported_gap(datalake_ur
     missing = list(range(21_000, 28_001, interval_ms))  # ~8s hole > 3x interval
 
     for t in range(0, 20_001, interval_ms):
-        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=t, value=42.0)
+        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=BASE_MS + t, value=42.0)
     for t in range(29_000, 60_001, interval_ms):
-        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=t, value=42.0)
+        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=BASE_MS + t, value=42.0)
 
     client = DatalakeClient(datalake_url)
     before = availability_from_datalake(
         client, source_id=source_id, kind=kind, field=field,
-        start_ms=0, end_ms=60_000, expected_interval_ms=float(interval_ms),
+        start_ms=BASE_MS, end_ms=BASE_MS + 60_000, expected_interval_ms=float(interval_ms),
     )
     assert len(before.downtime_periods) == 1
-    assert before.downtime_periods[0].start_ms == 20_000
-    assert before.downtime_periods[0].end_ms == 29_000
+    assert before.downtime_periods[0].start_ms == BASE_MS + 20_000
+    assert before.downtime_periods[0].end_ms == BASE_MS + 29_000
 
     for t in missing:  # the late backfill
-        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=t, value=42.0)
+        _ingest_sample(datalake_url, source_id=source_id, kind=kind, timestamp_ms=BASE_MS + t, value=42.0)
 
     after = availability_from_datalake(
         client, source_id=source_id, kind=kind, field=field,
-        start_ms=0, end_ms=60_000, expected_interval_ms=float(interval_ms),
+        start_ms=BASE_MS, end_ms=BASE_MS + 60_000, expected_interval_ms=float(interval_ms),
     )
     assert after.downtime_periods == []
     assert after.availability == pytest.approx(1.0)
