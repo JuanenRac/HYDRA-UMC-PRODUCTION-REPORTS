@@ -136,19 +136,6 @@ Verified: full pytest suite (68/68, 4 new), `tools/ci_validate.py` PASS.
 
 ---
 
-## Documentation - Real HTTP API reference
-
-- **`docs/API.md`** (new) - every real endpoint (`GET /reports/oee`,
-  `GET /reports/availability`, `GET /stats`) documented from the actual
-  handler code in `api.py`: required query params, real example
-  responses with every field's exact meaning (from `oee.py`/
-  `availability.py`), and the `502` vs `400` error distinction (DATALAKE
-  unreachable vs. bad input). Cross-checked field-by-field against
-  `tests/test_api.py`'s real assertions (12/12 tests passing).
-  Documentation-only - no code changed, no version bump.
-
----
-
 ## [0.0.7]
 
 - **Fixed a real bug found on code review: report
@@ -230,3 +217,18 @@ Verified: full pytest suite (68/68, 4 new), `tools/ci_validate.py` PASS.
 - **`pyproject.toml`** - packaging metadata, no runtime dependencies yet.
 - **`bump_version.py`** - ecosystem-standard odometer bump script.
 - **`build.sh` / `build.bat`**, **`run.sh` / `run.bat`** - venv creation, editable install, compile-check, and entry-point execution.
+
+## Earlier history
+
+### Documentation - Real HTTP API reference
+
+- **`docs/API.md`** (new) - every real endpoint (`GET /reports/oee`,
+  `GET /reports/availability`, `GET /stats`) documented from the actual
+  handler code in `api.py`: required query params, real example
+  responses with every field's exact meaning (from `oee.py`/
+  `availability.py`), and the `502` vs `400` error distinction (DATALAKE
+  unreachable vs. bad input). Cross-checked field-by-field against
+  `tests/test_api.py`'s real assertions (12/12 tests passing).
+  Documentation-only - no code changed, no version bump.
+
+---
