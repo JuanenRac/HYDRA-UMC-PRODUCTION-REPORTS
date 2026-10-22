@@ -112,7 +112,7 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   └── ci_validate.py        # CI が使用する manifest/CHANGELOG/docs の検証
 ├── pyproject.toml            # パッケージメタデータ + [dev] extras（pytest）
 ├── mejoras_futuras.txt        # 意図的に後回しにした内容とその理由を完全にまとめた正直なリスト
-├── bump_version.py           # オドメーター式バージョンインクリメント（ビルドが実行）
+├── bump_version.py           # オドメーター式バージョンインクリメント（明示的な `bump` コマンドのみが実行）
 ├── bump_manifest_version.py  # hydra-umc.project.json のバージョンをネイティブ側と同期（--sync）
 ├── build.sh / build.bat      # 実際のビルド：venv + editable インストール + 実際のテストスイート
 ├── run.sh / run.bat          # 実際の実行：HTTP API を起動

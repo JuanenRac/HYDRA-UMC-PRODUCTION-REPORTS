@@ -109,7 +109,7 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   └── ci_validate.py        # CI 使用的 manifest/CHANGELOG/docs 校验
 ├── pyproject.toml            # 包元数据 + [dev] extras（pytest）
 ├── mejoras_futuras.txt        # 完整、诚实地列出哪些内容被有意推迟及原因
-├── bump_version.py           # 里程表式版本递增（由构建运行）
+├── bump_version.py           # 里程表式版本递增（仅由显式 `bump` 命令运行）
 ├── bump_manifest_version.py  # 将 hydra-umc.project.json 的版本与原生版本同步（--sync）
 ├── build.sh / build.bat      # 真实构建：venv + 可编辑安装 + 真实测试套件
 ├── run.sh / run.bat          # 真实运行：启动 HTTP API

@@ -106,7 +106,7 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   └── ci_validate.py        # Manifest/CHANGELOG/docs validation used by CI
 ├── mejoras_futuras.txt        # The complete, honest list of what's deliberately deferred and why
 ├── pyproject.toml            # Package metadata + [dev] extras (pytest)
-├── bump_version.py           # Odometer-style native version bump (run by build)
+├── bump_version.py           # Odometer-style version bump (run only by the explicit `bump` command)
 ├── bump_manifest_version.py  # Syncs hydra-umc.project.json's version to the native one (--sync)
 ├── build.sh / build.bat      # Real build: venv + editable install + real test suite
 ├── run.sh / run.bat          # Real run: starts the HTTP API
