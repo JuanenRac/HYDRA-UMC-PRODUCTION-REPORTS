@@ -26,7 +26,7 @@
 
 | | |
 |---|---|
-| Versión | `0.1.5` |
+| Versión | `0.1.6` |
 | Madurez | Funcional |
 | Tests | 122 (`pytest`) |
 | Tecnología | Python / real OEE formula / http.server |

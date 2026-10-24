@@ -26,7 +26,7 @@
 
 | | |
 |---|---|
-| 版本 | `0.1.5` |
+| 版本 | `0.1.6` |
 | 成熟度 | 可用 |
 | 测试 | 122 (`pytest`) |
 | 技术栈 | Python / real OEE formula / http.server |
