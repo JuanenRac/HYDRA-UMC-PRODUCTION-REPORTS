@@ -29,6 +29,15 @@ class _Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         params = {k: v[0] for k, v in parse_qs(parsed.query).items()}
+        self.server.seen_authorization.append(self.headers.get("Authorization"))
+        if self.server.required_token and self.headers.get("Authorization") != f"Bearer {self.server.required_token}":
+            body = b'{"error": "a valid bearer token is required for read access"}'
+            self.send_response(401)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
 
         if parsed.path == "/query":
             points = self.server.points
@@ -68,6 +77,9 @@ class FakeDatalakeServer(ThreadingHTTPServer):
     def __init__(self, address: tuple[str, int]) -> None:
         super().__init__(address, _Handler)
         self.points: list[dict] = []
+        # when set, a request without "Authorization: Bearer <token>" is answered 401, like a data lake with a read token
+        self.required_token: str = ""
+        self.seen_authorization: list[str | None] = []
 
 
 @contextmanager

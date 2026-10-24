@@ -17,12 +17,42 @@ from __future__ import annotations
 
 import http.client
 import json
+import os
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Callable
+
+
+READ_TOKEN_VARIABLES = ("HYDRA_UMC_DATALAKE_READ_TOKEN", "HYDRA_UMC_DATALAKE_TOKEN")
+
+
+def token_from_environment(environ: dict[str, str] | None = None) -> str:
+    """The bearer token for reading the data lake: HYDRA_UMC_DATALAKE_READ_TOKEN, else HYDRA_UMC_DATALAKE_TOKEN (the one for every
+    role). Each one may instead be given as a file, `<name>_FILE`, whose first line is the token. Empty when none is set (a data
+    lake on loopback with no token asks for none)."""
+    env = os.environ if environ is None else environ
+    for name in READ_TOKEN_VARIABLES:
+        direct = env.get(name, "").strip()
+        if direct:
+            return direct
+        path = env.get(f"{name}_FILE", "").strip()
+        if path:
+            try:
+                with open(path, encoding="utf-8") as handle:
+                    first = handle.readline().strip()
+            except OSError:
+                first = ""
+            if first:
+                return first
+    return ""
+
+
+def _usable_token(token: str) -> str:
+    """A token with a control character could split a header: it is not sent."""
+    return token if token and token.isprintable() and "\n" not in token and "\r" not in token else ""
 
 
 class DatalakeError(RuntimeError):
@@ -55,8 +85,11 @@ class DatalakeClient:
         max_attempts: int = 3,
         retry_delay_seconds: float = 0.5,
         sleep: Callable[[float], None] = time.sleep,
+        token: str | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
+        # The bearer token the data lake asks for (read role). `None` reads it from the environment, "" sends none.
+        self._token = _usable_token(token_from_environment() if token is None else token)
         self.timeout_s = timeout_s
         # Found while auditing the code: this
         # client had a timeout but no retry on transient network failure -
@@ -78,7 +111,8 @@ class DatalakeClient:
         last_error: Exception | None = None
         for attempt in range(1, self.max_attempts + 1):
             try:
-                with urllib.request.urlopen(url, timeout=self.timeout_s) as resp:
+                request = urllib.request.Request(url, headers={"Authorization": f"Bearer {self._token}"} if self._token else {})
+                with urllib.request.urlopen(request, timeout=self.timeout_s) as resp:
                     raw = resp.read()
             except urllib.error.HTTPError as e:
                 body = e.read().decode("utf-8", errors="replace")

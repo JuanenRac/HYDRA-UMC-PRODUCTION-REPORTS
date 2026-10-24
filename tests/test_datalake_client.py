@@ -118,3 +118,50 @@ def test_gives_up_after_max_attempts_with_a_clear_error() -> None:
     client = DatalakeClient("http://127.0.0.1:1", timeout_s=1.0, max_attempts=3, sleep=lambda _delay: None)
     with pytest.raises(DatalakeError, match="after 3 attempts"):
         client.query(source_id="robot-1")
+
+
+# ---- the bearer token of the data lake ---------------------------------------------------------------------------------------
+
+
+def test_the_read_token_is_sent_and_a_missing_one_is_refused() -> None:
+    from hydra_umc_production_reports.datalake_client import DatalakeClient as Client
+
+    with running_fake_datalake() as (url, server):
+        server.required_token = "datalake-read-token-0123456789"
+        server.points = [{"sourceId": "robot-1", "kind": "k", "field": "value", "timestamp": 1000, "value": 1.0}]
+        good = Client(url, token="datalake-read-token-0123456789")
+        assert len(good.query(source_id="robot-1")) == 1
+        assert server.seen_authorization[-1] == "Bearer datalake-read-token-0123456789"
+        with pytest.raises(DatalakeError, match="401"):
+            Client(url, token="").query(source_id="robot-1")
+        with pytest.raises(DatalakeError, match="401"):
+            Client(url, token="another-token-0123456789").query(source_id="robot-1")
+
+
+def test_no_token_means_no_header() -> None:
+    with running_fake_datalake() as (url, server):
+        DatalakeClient(url, token="").query()
+        assert server.seen_authorization == [None]
+
+
+def test_the_token_comes_from_the_environment_or_a_file(tmp_path, monkeypatch) -> None:
+    from hydra_umc_production_reports.datalake_client import token_from_environment
+
+    assert token_from_environment({}) == ""
+    assert token_from_environment({"HYDRA_UMC_DATALAKE_TOKEN": "shared-token-0123456789"}) == "shared-token-0123456789"
+    # the read token wins over the shared one
+    assert token_from_environment({"HYDRA_UMC_DATALAKE_READ_TOKEN": "read-token-0123456789", "HYDRA_UMC_DATALAKE_TOKEN": "shared"}) == "read-token-0123456789"
+    path = tmp_path / "read.token"
+    path.write_text("token-in-a-file-0123456789\nsecond line ignored\n", encoding="utf-8")
+    assert token_from_environment({"HYDRA_UMC_DATALAKE_READ_TOKEN_FILE": str(path)}) == "token-in-a-file-0123456789"
+    assert token_from_environment({"HYDRA_UMC_DATALAKE_READ_TOKEN_FILE": str(tmp_path / "missing")}) == ""
+    monkeypatch.setenv("HYDRA_UMC_DATALAKE_TOKEN", "from-the-process-environment-01")
+    with running_fake_datalake() as (url, server):
+        server.required_token = "from-the-process-environment-01"
+        assert DatalakeClient(url).query() == []
+
+
+def test_a_token_that_could_split_a_header_is_not_sent() -> None:
+    with running_fake_datalake() as (url, server):
+        DatalakeClient(url, token="abc\r\nX-Evil: 1").query()
+        assert server.seen_authorization == [None]
