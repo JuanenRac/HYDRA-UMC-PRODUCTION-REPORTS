@@ -108,7 +108,8 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   ├── shift.py                # Real shift/day-boundary computation (source of truth)
 │   ├── export.py               # Real, byte-for-byte reproducible CSV export
 │   ├── api.py                  # Real HTTP API (GET /reports/oee, /reports/availability, /stats, /export)
-│   └── main.py                 # Entry point - starts the real HTTP server
+│   ├── main.py                 # Entry point - starts the real HTTP server
+│   └── provenance.py           # Where a report's numbers came from: source, series, time window, samples and program version
 ├── tests/                    # Real tests: OEE/availability/shift/export math, fake-DATALAKE round-trips
 ├── docs/
 │   └── API.md                 # Real HTTP endpoint reference (requests, responses, status codes)
@@ -117,7 +118,10 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   └── hydra-umc-production-reports.service # Local CM5 reports API systemd unit
 ├── tools/
 │   ├── build_test.py         # Non-versioning build/compile check
-│   └── ci_validate.py        # Manifest/CHANGELOG/docs validation used by CI
+│   ├── ci_validate.py        # Manifest/CHANGELOG/docs validation used by CI
+│   ├── _doc_policy.py        # Documentation rules shared by the family (a copy of HYDRA-UMC-SDK's, kept in sync)
+│   ├── _readme_parity.py     # Check that the eight READMEs share one structure (a copy of HYDRA-UMC-SDK's, kept in sync)
+│   └── hydra_project_tool.py # The same commands in every repository: validate, test, ci, version, status, bump
 ├── mejoras_futuras.txt        # The complete, honest list of what's deliberately deferred and why
 ├── pyproject.toml            # Package metadata + [dev] extras (pytest)
 ├── bump_version.py           # Odometer-style version bump (run only by the explicit `bump` command)

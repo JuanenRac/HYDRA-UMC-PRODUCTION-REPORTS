@@ -108,7 +108,8 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   ├── shift.py                # Vrai calcul des limites équipe/jour (source de vérité)
 │   ├── export.py               # Vrai export CSV, reproductible bit à bit
 │   ├── api.py                  # API HTTP réelle (GET /reports/oee, /reports/availability, /stats, /export)
-│   └── main.py                 # Point d'entrée - démarre le vrai serveur HTTP
+│   ├── main.py                 # Point d'entrée - démarre le vrai serveur HTTP
+│   └── provenance.py           # D'où viennent les chiffres d'un rapport : source, série, fenêtre de temps, échantillons et version du programme
 ├── tests/                    # Vrais tests : calculs OEE/disponibilité/équipe/export, allers-retours contre un faux DATALAKE
 ├── docs/
 │   └── API.md                 # Référence réelle des endpoints HTTP (requêtes, réponses, codes de statut)
@@ -117,9 +118,12 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   └── hydra-umc-production-reports.service # Unité systemd de l'API de rapports locale sur la CM5
 ├── tools/
 │   ├── build_test.py         # Contrôle build/compilation sans gestion de version
-│   └── ci_validate.py        # Validation manifest/CHANGELOG/docs utilisée par la CI
-├── pyproject.toml            # Métadonnées du paquet + extras [dev] (pytest)
+│   ├── ci_validate.py        # Validation manifest/CHANGELOG/docs utilisée par la CI
+│   ├── _doc_policy.py        # Règles de documentation partagées par la famille (copie de celle de HYDRA-UMC-SDK, tenue synchronisée)
+│   ├── _readme_parity.py     # Contrôle que les huit README partagent la même structure (copie de celui de HYDRA-UMC-SDK, tenue synchronisée)
+│   └── hydra_project_tool.py # Les mêmes commandes dans chaque dépôt : validate, test, ci, version, status, bump
 ├── mejoras_futuras.txt        # La liste complète et honnête de ce qui est délibérément reporté, et pourquoi
+├── pyproject.toml            # Métadonnées du paquet + extras [dev] (pytest)
 ├── bump_version.py           # Incrément de version type compteur kilométrique (exécuté seulement par la commande `bump` explicite)
 ├── bump_manifest_version.py  # Synchronise la version de hydra-umc.project.json avec la version native (--sync)
 ├── build.sh / build.bat      # Build réel : venv + installation éditable + vraie suite de tests

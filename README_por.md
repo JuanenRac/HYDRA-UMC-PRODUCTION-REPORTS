@@ -108,7 +108,8 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   ├── shift.py                # Cálculo real dos limites de turno/dia (fonte de verdade)
 │   ├── export.py               # Exportação CSV real e reproduzível byte a byte
 │   ├── api.py                  # API HTTP real (GET /reports/oee, /reports/availability, /stats, /export)
-│   └── main.py                 # Ponto de entrada - arranca o servidor HTTP real
+│   ├── main.py                 # Ponto de entrada - arranca o servidor HTTP real
+│   └── provenance.py           # De onde vêm os números de um relatório: fonte, série, janela de tempo, amostras e versão do programa
 ├── tests/                    # Testes reais: matemática de OEE/disponibilidade/turno/exportação, idas e voltas com um DATALAKE simulado
 ├── docs/
 │   └── API.md                 # Referência real dos endpoints HTTP (pedidos, respostas, códigos de estado)
@@ -117,7 +118,10 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   └── hydra-umc-production-reports.service # Unidade systemd da API local de relatórios do CM5
 ├── tools/
 │   ├── build_test.py         # Verificação de compilação sem subir a versão
-│   └── ci_validate.py        # Validação de manifesto/CHANGELOG/documentação usada pelo CI
+│   ├── ci_validate.py        # Validação de manifesto/CHANGELOG/documentação usada pelo CI
+│   ├── _doc_policy.py        # Regras de documentação partilhadas pela família (cópia da de HYDRA-UMC-SDK, mantida em sincronia)
+│   ├── _readme_parity.py     # Verificação de que os oito README partilham a mesma estrutura (cópia da de HYDRA-UMC-SDK, mantida em sincronia)
+│   └── hydra_project_tool.py # Os mesmos comandos em todos os repositórios: validate, test, ci, version, status, bump
 ├── mejoras_futuras.txt        # A lista completa e honesta do que está deliberadamente adiado e porquê
 ├── pyproject.toml            # Metadados do pacote + extras [dev] (pytest)
 ├── bump_version.py           # Subida de versão ao estilo conta-quilómetros (executada só pelo comando `bump` explícito)

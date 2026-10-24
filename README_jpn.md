@@ -114,7 +114,8 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   ├── shift.py                # 実際のシフト/日境界計算（信頼できる情報源）
 │   ├── export.py               # 実際の、バイト単位で再現可能な CSV エクスポート
 │   ├── api.py                  # 実際の HTTP API（GET /reports/oee、/reports/availability、/stats、/export）
-│   └── main.py                 # エントリポイント - 実際の HTTP サーバーを起動
+│   ├── main.py                 # エントリポイント - 実際の HTTP サーバーを起動
+│   └── provenance.py           # レポートの数値の出どころ: ソース、系列、時間窓、サンプル数、プログラムのバージョン
 ├── tests/                    # 実際のテスト：OEE/可用性/シフト/エクスポートの計算、偽の DATALAKE に対する往復テスト
 ├── docs/
 │   └── API.md                 # 本物の HTTP エンドポイントリファレンス（リクエスト、レスポンス、ステータスコード）
@@ -123,9 +124,12 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   └── hydra-umc-production-reports.service # CM5 上のローカルレポート API 用 systemd ユニット
 ├── tools/
 │   ├── build_test.py         # バージョンを更新しないビルド/コンパイル確認
-│   └── ci_validate.py        # CI が使用する manifest/CHANGELOG/docs の検証
-├── pyproject.toml            # パッケージメタデータ + [dev] extras（pytest）
+│   ├── ci_validate.py        # CI が使用する manifest/CHANGELOG/docs の検証
+│   ├── _doc_policy.py        # ファミリー共通のドキュメント規則 (HYDRA-UMC-SDK のコピーで、同期を維持)
+│   ├── _readme_parity.py     # 8つの README が同じ構造であることの検査 (HYDRA-UMC-SDK のコピーで、同期を維持)
+│   └── hydra_project_tool.py # すべてのリポジトリで共通のコマンド: validate、test、ci、version、status、bump
 ├── mejoras_futuras.txt        # 意図的に後回しにした内容とその理由を完全にまとめた正直なリスト
+├── pyproject.toml            # パッケージメタデータ + [dev] extras（pytest）
 ├── bump_version.py           # オドメーター式バージョンインクリメント（明示的な `bump` コマンドのみが実行）
 ├── bump_manifest_version.py  # hydra-umc.project.json のバージョンをネイティブ側と同期（--sync）
 ├── build.sh / build.bat      # 実際のビルド：venv + editable インストール + 実際のテストスイート

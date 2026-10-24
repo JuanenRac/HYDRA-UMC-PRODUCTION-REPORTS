@@ -111,7 +111,8 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   ├── shift.py                # 真实的班次/日边界计算（真实基准）
 │   ├── export.py               # 真实的、逐字节可复现的 CSV 导出
 │   ├── api.py                  # 真实的 HTTP API（GET /reports/oee、/reports/availability、/stats、/export）
-│   └── main.py                 # 入口点——启动真实的 HTTP 服务器
+│   ├── main.py                 # 入口点——启动真实的 HTTP 服务器
+│   └── provenance.py           # 报告数字的来源: 数据源、序列、时间窗口、样本数和程序版本
 ├── tests/                    # 真实测试：OEE/可用性/班次/导出的计算逻辑，针对伪造 DATALAKE 的往返测试
 ├── docs/
 │   └── API.md                 # 真实的 HTTP 端点参考（请求、响应、状态码）
@@ -120,9 +121,12 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   └── hydra-umc-production-reports.service # CM5 本地报告 API 的 systemd 单元
 ├── tools/
 │   ├── build_test.py         # 不递增版本号的构建/编译检查
-│   └── ci_validate.py        # CI 使用的 manifest/CHANGELOG/docs 校验
-├── pyproject.toml            # 包元数据 + [dev] extras（pytest）
+│   ├── ci_validate.py        # CI 使用的 manifest/CHANGELOG/docs 校验
+│   ├── _doc_policy.py        # 家族共享的文档规则 (HYDRA-UMC-SDK 的副本,保持同步)
+│   ├── _readme_parity.py     # 检查八个 README 结构一致 (HYDRA-UMC-SDK 的副本,保持同步)
+│   └── hydra_project_tool.py # 每个仓库相同的命令: validate、test、ci、version、status、bump
 ├── mejoras_futuras.txt        # 完整、诚实地列出哪些内容被有意推迟及原因
+├── pyproject.toml            # 包元数据 + [dev] extras（pytest）
 ├── bump_version.py           # 里程表式版本递增（仅由显式 `bump` 命令运行）
 ├── bump_manifest_version.py  # 将 hydra-umc.project.json 的版本与原生版本同步（--sync）
 ├── build.sh / build.bat      # 真实构建：venv + 可编辑安装 + 真实测试套件
