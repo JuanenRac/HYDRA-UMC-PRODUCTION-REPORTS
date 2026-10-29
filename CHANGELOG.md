@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented here.
 
+## [Unreleased]
+
+- **The layout of the README is checked in the CI:** the validator runs `tools/universal_readme_check.py` and lists, as a warning, what differs from the universal layout of the README.
+
 ## [0.1.6] - The data lake client sends the bearer token the data lake asks for (`H
 
 - The data lake client sends the bearer token the data lake asks for (`HYDRA_UMC_DATALAKE_READ_TOKEN`, else `HYDRA_UMC_DATALAKE_TOKEN`, each also as a file `..._FILE`); with none set it sends no header, as before.
