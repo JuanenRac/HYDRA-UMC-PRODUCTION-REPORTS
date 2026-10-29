@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **README in the universal layout:** the README and its seven translations follow the layout that the four families share (22 sections in a fixed order), with an architecture picture and a repository-structure picture drawn from `docs/architecture.json` and `docs/structure.json`; the CI validator checks both pictures and the file tree.
+
 - **The layout of the README is checked in the CI:** the validator runs `tools/universal_readme_check.py` and lists, as a warning, what differs from the universal layout of the README.
 
 ## [0.1.6] - The data lake client sends the bearer token the data lake asks for (`H
@@ -222,7 +224,7 @@ Verified: full pytest suite (68/68, 4 new), `tools/ci_validate.py` PASS.
 
 - **`src/hydra_umc_production_reports/main.py`** - minimal real entry point. No reporting logic yet - shift/OEE/production-run report generation over HYDRA-UMC-DATALAKE's own telemetry lands in a later pass.
 - **`pyproject.toml`** - packaging metadata, no runtime dependencies yet.
-- **`bump_version.py`** - ecosystem-standard odometer bump script.
+- **`bump_version.py`** - ecosystem-standard version bump script.
 - **`build.sh` / `build.bat`**, **`run.sh` / `run.bat`** - venv creation, editable install, compile-check, and entry-point execution.
 
 ## Earlier history

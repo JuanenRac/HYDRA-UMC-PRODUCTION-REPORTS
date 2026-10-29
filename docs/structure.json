@@ -1,0 +1,629 @@
+{
+  "repo": "HYDRA-UMC-PRODUCTION-REPORTS",
+  "ecosystem": "hydra",
+  "svg": "en",
+  "exempt": [
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "SUPPORT.md",
+    "LICENSE",
+    "LICENSE.md",
+    "build-test.bat",
+    "test.bat"
+  ],
+  "cards": [
+    {
+      "name": "src/hydra_umc_production_reports/",
+      "span": 3,
+      "accent": "a",
+      "rows": [
+        {
+          "name": "__init__.py",
+          "desc": {
+            "en": "Package version",
+            "es": "Versión del paquete",
+            "de": "Paketversion",
+            "fr": "Version du paquet",
+            "it": "Versione del pacchetto",
+            "ja": "パッケージバージョン",
+            "zh": "包版本",
+            "pt": "Versão do pacote"
+          },
+          "tree_desc": {
+            "en": "Package version",
+            "es": "Versión del paquete",
+            "de": "Paketversion",
+            "fr": "Version du paquet",
+            "it": "Versione del pacchetto",
+            "ja": "パッケージバージョン",
+            "zh": "包版本",
+            "pt": "Versão do pacote"
+          }
+        },
+        {
+          "name": "datalake_client.py",
+          "desc": {
+            "en": "Real HTTP client for HYDRA-UMC-DATALAKE's",
+            "es": "Cliente HTTP real para la API GET /query de",
+            "de": "Echter HTTP-Client für die GET /query API",
+            "fr": "Client HTTP réel pour l'API GET /query de",
+            "it": "Client HTTP reale per l'API GET /query di",
+            "ja": "HYDRA-UMC-DATALAKE の G",
+            "zh": "针对 HYDRA-UMC-DATALAKE",
+            "pt": "Cliente HTTP real para a API GET /query do"
+          },
+          "tree_desc": {
+            "en": "Real HTTP client for HYDRA-UMC-DATALAKE's GET /query API",
+            "es": "Cliente HTTP real para la API GET /query de HYDRA-UMC-DATALAKE",
+            "de": "Echter HTTP-Client für die GET /query API von HYDRA-UMC-DATALAKE",
+            "fr": "Client HTTP réel pour l'API GET /query de HYDRA-UMC-DATALAKE",
+            "it": "Client HTTP reale per l'API GET /query di HYDRA-UMC-DATALAKE",
+            "ja": "HYDRA-UMC-DATALAKE の GET /query API 向けの実際の HTTP クライアント",
+            "zh": "针对 HYDRA-UMC-DATALAKE 的 GET /query API 的真实 HTTP 客户端",
+            "pt": "Cliente HTTP real para a API GET /query do HYDRA-UMC-DATALAKE"
+          }
+        },
+        {
+          "name": "oee.py",
+          "desc": {
+            "en": "Real OEE formula",
+            "es": "Fórmula OEE real",
+            "de": "Echte OEE-Formel",
+            "fr": "Vraie formule OEE",
+            "it": "Vera formula OEE",
+            "ja": "実際の OEE 計算式（可用性 x パフォー",
+            "zh": "真实的 OEE 公式（可用性 x 性能 x",
+            "pt": "Fórmula real do OEE"
+          },
+          "tree_desc": {
+            "en": "Real OEE formula (Availability x Performance x Quality)",
+            "es": "Fórmula OEE real (Disponibilidad x Rendimiento x Calidad)",
+            "de": "Echte OEE-Formel (Verfügbarkeit x Leistung x Qualität)",
+            "fr": "Vraie formule OEE (Disponibilité x Performance x Qualité)",
+            "it": "Vera formula OEE (Disponibilità x Performance x Qualità)",
+            "ja": "実際の OEE 計算式（可用性 x パフォーマンス x 品質）",
+            "zh": "真实的 OEE 公式（可用性 x 性能 x 质量）",
+            "pt": "Fórmula real do OEE (Disponibilidade x Desempenho x Qualidade)"
+          }
+        },
+        {
+          "name": "availability.py",
+          "desc": {
+            "en": "Real downtime-from-telemetry-gaps",
+            "es": "Cálculo real de downtime a partir de huecos",
+            "de": "Echte Downtime-Berechnung aus",
+            "fr": "Vrai calcul de downtime à partir des écarts",
+            "it": "Vero calcolo del downtime dagli intervalli",
+            "ja": "テレメトリの間隔から算出する実際のダウンタイ",
+            "zh": "基于遥测间隔的真实停机计算",
+            "pt": "Cálculo real do tempo de paragem a partir"
+          },
+          "tree_desc": {
+            "en": "Real downtime-from-telemetry-gaps calculation",
+            "es": "Cálculo real de downtime a partir de huecos de telemetría",
+            "de": "Echte Downtime-Berechnung aus Telemetrie-Lücken",
+            "fr": "Vrai calcul de downtime à partir des écarts de télémétrie",
+            "it": "Vero calcolo del downtime dagli intervalli di telemetria",
+            "ja": "テレメトリの間隔から算出する実際のダウンタイム計算",
+            "zh": "基于遥测间隔的真实停机计算",
+            "pt": "Cálculo real do tempo de paragem a partir de lacunas de telemetria"
+          }
+        },
+        {
+          "name": "reports.py",
+          "desc": {
+            "en": "Orchestration: DatalakeClient -> oee.py /",
+            "es": "Orquestación: DatalakeClient -> oee.py /",
+            "de": "Orchestrierung",
+            "fr": "Orchestration",
+            "it": "Orchestrazione",
+            "ja": "オーケストレーション: DatalakeCl",
+            "zh": "编排层：DatalakeClient ->",
+            "pt": "Orquestração: DatalakeClient -> oee.py /"
+          },
+          "tree_desc": {
+            "en": "Orchestration: DatalakeClient -> oee.py / availability.py",
+            "es": "Orquestación: DatalakeClient -> oee.py / availability.py",
+            "de": "Orchestrierung: DatalakeClient -> oee.py / availability.py",
+            "fr": "Orchestration : DatalakeClient -> oee.py / availability.py",
+            "it": "Orchestrazione: DatalakeClient -> oee.py / availability.py",
+            "ja": "オーケストレーション: DatalakeClient -> oee.py / availability.py",
+            "zh": "编排层：DatalakeClient -> oee.py / availability.py",
+            "pt": "Orquestração: DatalakeClient -> oee.py / availability.py"
+          }
+        },
+        {
+          "name": "shift.py",
+          "desc": {
+            "en": "Real shift/day-boundary computation",
+            "es": "Cálculo real de límites de turno/día",
+            "de": "Echte Schicht-/Tagesgrenzen-Berechnung",
+            "fr": "Vrai calcul des limites équipe/jour",
+            "it": "Vero calcolo dei confini turno/giorno",
+            "ja": "実際のシフト/日境界計算（信頼できる情報源）",
+            "zh": "真实的班次/日边界计算（真实基准）",
+            "pt": "Cálculo real dos limites de turno/dia"
+          },
+          "tree_desc": {
+            "en": "Real shift/day-boundary computation (source of truth)",
+            "es": "Cálculo real de límites de turno/día (fuente de verdad)",
+            "de": "Echte Schicht-/Tagesgrenzen-Berechnung (Quelle der Wahrheit)",
+            "fr": "Vrai calcul des limites équipe/jour (source de vérité)",
+            "it": "Vero calcolo dei confini turno/giorno (fonte di verità)",
+            "ja": "実際のシフト/日境界計算（信頼できる情報源）",
+            "zh": "真实的班次/日边界计算（真实基准）",
+            "pt": "Cálculo real dos limites de turno/dia (fonte de verdade)"
+          }
+        },
+        {
+          "name": "export.py",
+          "desc": {
+            "en": "Real, byte-for-byte reproducible CSV export",
+            "es": "Exportación CSV real",
+            "de": "Echter, byteidentisch reproduzierbarer",
+            "fr": "Vrai export CSV, reproductible bit à bit",
+            "it": "Vera esportazione CSV",
+            "ja": "実際の、バイト単位で再現可能な CSV エク",
+            "zh": "真实的、逐字节可复现的 CSV 导出",
+            "pt": "Exportação CSV real e reproduzível byte a"
+          },
+          "tree_desc": {
+            "en": "Real, byte-for-byte reproducible CSV export",
+            "es": "Exportación CSV real, reproducible byte a byte",
+            "de": "Echter, byteidentisch reproduzierbarer CSV-Export",
+            "fr": "Vrai export CSV, reproductible bit à bit",
+            "it": "Vera esportazione CSV, riproducibile byte per byte",
+            "ja": "実際の、バイト単位で再現可能な CSV エクスポート",
+            "zh": "真实的、逐字节可复现的 CSV 导出",
+            "pt": "Exportação CSV real e reproduzível byte a byte"
+          }
+        },
+        {
+          "name": "api.py",
+          "desc": {
+            "en": "Real HTTP API (GET /reports/oee",
+            "es": "API HTTP real (GET /reports/oee",
+            "de": "Echte HTTP-API",
+            "fr": "API HTTP réelle",
+            "it": "API HTTP reale",
+            "ja": "実際の HTTP API（GET /repo",
+            "zh": "真实的 HTTP API（GET /repo",
+            "pt": "API HTTP real (GET /reports/oee"
+          },
+          "tree_desc": {
+            "en": "Real HTTP API (GET /reports/oee, /reports/availability, /stats, /export)",
+            "es": "API HTTP real (GET /reports/oee, /reports/availability, /stats, /export)",
+            "de": "Echte HTTP-API (GET /reports/oee, /reports/availability, /stats, /export)",
+            "fr": "API HTTP réelle (GET /reports/oee, /reports/availability, /stats, /export)",
+            "it": "API HTTP reale (GET /reports/oee, /reports/availability, /stats, /export)",
+            "ja": "実際の HTTP API（GET /reports/oee、/reports/availability、/stats、/export）",
+            "zh": "真实的 HTTP API（GET /reports/oee、/reports/availability、/stats、/export）",
+            "pt": "API HTTP real (GET /reports/oee, /reports/availability, /stats, /export)"
+          }
+        },
+        {
+          "name": "main.py",
+          "desc": {
+            "en": "Entry point - starts the real HTTP server",
+            "es": "Punto de entrada",
+            "de": "Einstiegspunkt",
+            "fr": "Point d'entrée",
+            "it": "Punto di ingresso",
+            "ja": "エントリポイント - 実際の HTTP サー",
+            "zh": "入口点——启动真实的 HTTP 服务器",
+            "pt": "Ponto de entrada"
+          },
+          "tree_desc": {
+            "en": "Entry point - starts the real HTTP server",
+            "es": "Punto de entrada - arranca el servidor HTTP real",
+            "de": "Einstiegspunkt - startet den echten HTTP-Server",
+            "fr": "Point d'entrée - démarre le vrai serveur HTTP",
+            "it": "Punto di ingresso - avvia il vero server HTTP",
+            "ja": "エントリポイント - 実際の HTTP サーバーを起動",
+            "zh": "入口点——启动真实的 HTTP 服务器",
+            "pt": "Ponto de entrada - arranca o servidor HTTP real"
+          }
+        },
+        {
+          "name": "provenance.py",
+          "desc": {
+            "en": "Where a report's numbers came from",
+            "es": "De dónde salen las cifras de un informe",
+            "de": "Woher die Zahlen eines Berichts stammen",
+            "fr": "D'où viennent les chiffres d'un rapport",
+            "it": "Da dove vengono i numeri di un rapporto",
+            "ja": "レポートの数値の出どころ: ソース",
+            "zh": "报告数字的来源: 数据源、序列、时间窗口、样",
+            "pt": "De onde vêm os números de um relatório"
+          },
+          "tree_desc": {
+            "en": "Where a report's numbers came from: source, series, time window, samples and program version",
+            "es": "De dónde salen las cifras de un informe: fuente, serie, ventana de tiempo, muestras y versión del programa",
+            "de": "Woher die Zahlen eines Berichts stammen: Quelle, Reihe, Zeitfenster, Stichproben und Programmversion",
+            "fr": "D'où viennent les chiffres d'un rapport : source, série, fenêtre de temps, échantillons et version du programme",
+            "it": "Da dove vengono i numeri di un rapporto: fonte, serie, finestra temporale, campioni e versione del programma",
+            "ja": "レポートの数値の出どころ: ソース、系列、時間窓、サンプル数、プログラムのバージョン",
+            "zh": "报告数字的来源: 数据源、序列、时间窗口、样本数和程序版本",
+            "pt": "De onde vêm os números de um relatório: fonte, série, janela de tempo, amostras e versão do programa"
+          }
+        }
+      ],
+      "tree_head": {
+        "en": "source code",
+        "es": "código fuente",
+        "de": "Quellcode",
+        "fr": "code source",
+        "it": "codice sorgente",
+        "ja": "ソースコード",
+        "zh": "源代码",
+        "pt": "código-fonte"
+      },
+      "sub": {
+        "en": "source code",
+        "es": "código fuente",
+        "de": "Quellcode",
+        "fr": "code source",
+        "it": "codice sorgente",
+        "ja": "ソースコード",
+        "zh": "源代码",
+        "pt": "código-fonte"
+      },
+      "columns": 2
+    },
+    {
+      "name": {
+        "en": "folders",
+        "es": "carpetas",
+        "de": "Ordner",
+        "fr": "dossiers",
+        "it": "cartelle",
+        "ja": "フォルダ",
+        "zh": "文件夹",
+        "pt": "pastas"
+      },
+      "kind": "group",
+      "span": 3,
+      "accent": "b",
+      "columns": 2,
+      "rows": [
+        {
+          "name": "tests/",
+          "desc": {
+            "en": "Real tests: OEE/availability/shift/export",
+            "es": "Tests reales: matemática de",
+            "de": "Echte Tests",
+            "fr": "Vrais tests : calculs",
+            "it": "Test reali: matematica di",
+            "ja": "実際のテスト：OEE/可用性/シフト/エクス",
+            "zh": "真实测试：OEE/可用性/班次/导出的计算逻",
+            "pt": "Testes reais: matemática de"
+          },
+          "tree_desc": {
+            "en": "Real tests: OEE/availability/shift/export math, fake-DATALAKE round-trips",
+            "es": "Tests reales: matemática de OEE/disponibilidad/turno/exportación, round-trips contra un DATALAKE falso",
+            "de": "Echte Tests: OEE-/Verfügbarkeits-/Schicht-/Export-Berechnungen, Round-Trips gegen ein simuliertes DATALAKE",
+            "fr": "Vrais tests : calculs OEE/disponibilité/équipe/export, allers-retours contre un faux DATALAKE",
+            "it": "Test reali: matematica di OEE/disponibilità/turno/esportazione, round-trip contro un DATALAKE fittizio",
+            "ja": "実際のテスト：OEE/可用性/シフト/エクスポートの計算、偽の DATALAKE に対する往復テスト",
+            "zh": "真实测试：OEE/可用性/班次/导出的计算逻辑，针对伪造 DATALAKE 的往返测试",
+            "pt": "Testes reais: matemática de OEE/disponibilidade/turno/exportação, idas e voltas com um DATALAKE simulado"
+          }
+        },
+        {
+          "name": "docs/",
+          "desc": {
+            "en": "documents of the project",
+            "es": "documentos del proyecto",
+            "de": "Dokumente des Projekts",
+            "fr": "documents du projet",
+            "it": "documenti del progetto",
+            "ja": "プロジェクトの文書",
+            "zh": "项目文档",
+            "pt": "documentos do projeto"
+          },
+          "tree_desc": {
+            "en": "documents of the project",
+            "es": "documentos del proyecto",
+            "de": "Dokumente des Projekts",
+            "fr": "documents du projet",
+            "it": "documenti del progetto",
+            "ja": "プロジェクトの文書",
+            "zh": "项目文档",
+            "pt": "documentos do projeto"
+          }
+        },
+        {
+          "name": "images/",
+          "desc": {
+            "en": "Media and diagrams",
+            "es": "Medios y diagramas",
+            "de": "Medien und Diagramme",
+            "fr": "Médias et diagrammes",
+            "it": "Media e diagrammi",
+            "ja": "メディアと図版",
+            "zh": "媒体与图示",
+            "pt": "Multimédia e diagramas"
+          },
+          "tree_desc": {
+            "en": "Media and diagrams",
+            "es": "Medios y diagramas",
+            "de": "Medien und Diagramme",
+            "fr": "Médias et diagrammes",
+            "it": "Media e diagrammi",
+            "ja": "メディアと図版",
+            "zh": "媒体与图示",
+            "pt": "Multimédia e diagramas"
+          }
+        },
+        {
+          "name": "systemd/",
+          "desc": {
+            "en": "service unit",
+            "es": "unidad de servicio",
+            "de": "Dienst-Unit",
+            "fr": "unité de service",
+            "it": "unità di servizio",
+            "ja": "サービスユニット",
+            "zh": "服务单元",
+            "pt": "unidade de serviço"
+          },
+          "tree_desc": {
+            "en": "service unit",
+            "es": "unidad de servicio",
+            "de": "Dienst-Unit",
+            "fr": "unité de service",
+            "it": "unità di servizio",
+            "ja": "サービスユニット",
+            "zh": "服务单元",
+            "pt": "unidade de serviço"
+          }
+        },
+        {
+          "name": "tools/",
+          "desc": {
+            "en": "project tools and CI checks",
+            "es": "herramientas del proyecto y comprobaciones",
+            "de": "Projektwerkzeuge und CI-Prüfungen",
+            "fr": "outils du projet et vérifications de la CI",
+            "it": "strumenti del progetto e controlli della CI",
+            "ja": "プロジェクトのツールと CI の検査",
+            "zh": "项目工具和 CI 检查",
+            "pt": "ferramentas do projeto e verificações da CI"
+          },
+          "tree_desc": {
+            "en": "project tools and CI checks",
+            "es": "herramientas del proyecto y comprobaciones del CI",
+            "de": "Projektwerkzeuge und CI-Prüfungen",
+            "fr": "outils du projet et vérifications de la CI",
+            "it": "strumenti del progetto e controlli della CI",
+            "ja": "プロジェクトのツールと CI の検査",
+            "zh": "项目工具和 CI 检查",
+            "pt": "ferramentas do projeto e verificações da CI"
+          }
+        },
+        {
+          "name": ".github/",
+          "desc": {
+            "en": "CI workflow and issue templates",
+            "es": "flujo de CI y plantillas de incidencias",
+            "de": "CI-Workflow und Issue-Vorlagen",
+            "fr": "workflow de CI et modèles de tickets",
+            "it": "workflow di CI e modelli di segnalazione",
+            "ja": "CI ワークフローと Issue テンプレート",
+            "zh": "CI 工作流和 Issue 模板",
+            "pt": "fluxo de CI e modelos de problemas"
+          }
+        }
+      ]
+    },
+    {
+      "name": {
+        "en": "project files",
+        "es": "ficheros del proyecto",
+        "de": "Projektdateien",
+        "fr": "fichiers du projet",
+        "it": "file del progetto",
+        "ja": "プロジェクトのファイル",
+        "zh": "项目文件",
+        "pt": "ficheiros do projeto"
+      },
+      "kind": "group",
+      "span": 3,
+      "accent": "c",
+      "columns": 2,
+      "rows": [
+        {
+          "name": "mejoras_futuras.txt",
+          "desc": {
+            "en": "The complete, honest list of what's",
+            "es": "La lista completa y honesta de lo que queda",
+            "de": "Die vollständige",
+            "fr": "La liste complète et honnête de ce qui est",
+            "it": "L'elenco completo e onesto di ciò che è",
+            "ja": "意図的に後回しにした内容とその理由を完全にま",
+            "zh": "完整、诚实地列出哪些内容被有意推迟及原因",
+            "pt": "A lista completa e honesta do que está"
+          },
+          "tree_desc": {
+            "en": "The complete, honest list of what's deliberately deferred and why",
+            "es": "La lista completa y honesta de lo que queda deliberadamente diferido, y por qué",
+            "de": "Die vollständige, ehrliche Liste dessen, was bewusst zurückgestellt wurde und warum",
+            "fr": "La liste complète et honnête de ce qui est délibérément reporté, et pourquoi",
+            "it": "L'elenco completo e onesto di ciò che è deliberatamente rimandato, e perché",
+            "ja": "意図的に後回しにした内容とその理由を完全にまとめた正直なリスト",
+            "zh": "完整、诚实地列出哪些内容被有意推迟及原因",
+            "pt": "A lista completa e honesta do que está deliberadamente adiado e porquê"
+          }
+        },
+        {
+          "name": "pyproject.toml",
+          "desc": {
+            "en": "Package metadata + [dev] extras (pytest)",
+            "es": "Metadatos del paquete + extras [dev]",
+            "de": "Paketmetadaten + [dev]-Extras (pytest)",
+            "fr": "Métadonnées du paquet + extras [dev]",
+            "it": "Metadati del pacchetto + extra [dev]",
+            "ja": "パッケージメタデータ + [dev] ext",
+            "zh": "包元数据 + [dev] extras",
+            "pt": "Metadados do pacote + extras [dev] (pytest)"
+          },
+          "tree_desc": {
+            "en": "Package metadata + [dev] extras (pytest)",
+            "es": "Metadatos del paquete + extras [dev] (pytest)",
+            "de": "Paketmetadaten + [dev]-Extras (pytest)",
+            "fr": "Métadonnées du paquet + extras [dev] (pytest)",
+            "it": "Metadati del pacchetto + extra [dev] (pytest)",
+            "ja": "パッケージメタデータ + [dev] extras（pytest）",
+            "zh": "包元数据 + [dev] extras（pytest）",
+            "pt": "Metadados do pacote + extras [dev] (pytest)"
+          }
+        },
+        {
+          "name": "bump_version.py",
+          "desc": {
+            "en": "explicit version bump",
+            "es": "Incremento de versión tipo cuentakilómetros",
+            "de": "ausdrückliche Versionserhöhung",
+            "fr": "Incrément de version type compteur",
+            "it": "Incremento di versione stile contachilometri",
+            "ja": "明示的なバージョン更新",
+            "zh": "显式提升版本",
+            "pt": "Subida de versão ao estilo conta-quilómetros"
+          },
+          "tree_desc": {
+            "en": "explicit version bump",
+            "es": "Incremento de versión tipo cuentakilómetros (solo lo ejecuta el comando `bump` explícito)",
+            "de": "ausdrückliche Versionserhöhung",
+            "fr": "Incrément de version type compteur kilométrique (exécuté seulement par la commande `bump` explicite)",
+            "it": "Incremento di versione stile contachilometri (eseguito solo dal comando `bump` esplicito)",
+            "ja": "明示的なバージョン更新",
+            "zh": "显式提升版本",
+            "pt": "Subida de versão ao estilo conta-quilómetros (executada só pelo comando `bump` explícito)"
+          }
+        },
+        {
+          "name": "bump_manifest_version.py",
+          "desc": {
+            "en": "Syncs hydra-umc.project.json's version",
+            "es": "Sincroniza la versión de",
+            "de": "Synchronisiert die Version von",
+            "fr": "Synchronise la version de",
+            "it": "Sincronizza la versione di",
+            "ja": "hydra-umc.project.json",
+            "zh": "将 hydra-umc.project.js",
+            "pt": "Sincroniza a versão do"
+          },
+          "tree_desc": {
+            "en": "Syncs hydra-umc.project.json's version to the native one (--sync)",
+            "es": "Sincroniza la versión de hydra-umc.project.json con la nativa (--sync)",
+            "de": "Synchronisiert die Version von hydra-umc.project.json mit der nativen (--sync)",
+            "fr": "Synchronise la version de hydra-umc.project.json avec la version native (--sync)",
+            "it": "Sincronizza la versione di hydra-umc.project.json con quella nativa (--sync)",
+            "ja": "hydra-umc.project.json のバージョンをネイティブ側と同期（--sync）",
+            "zh": "将 hydra-umc.project.json 的版本与原生版本同步（--sync）",
+            "pt": "Sincroniza a versão do hydra-umc.project.json com a nativa (--sync)"
+          }
+        },
+        {
+          "name": "build.sh / build.bat",
+          "desc": {
+            "en": "Real build: venv + editable install +",
+            "es": "Build real: venv + instalación editable +",
+            "de": "Echter Build: venv + editierbare",
+            "fr": "Build réel : venv + installation éditable +",
+            "it": "Build reale: venv + installazione editable",
+            "ja": "実際のビルド：venv + editable",
+            "zh": "真实构建：venv + 可编辑安装 + 真实",
+            "pt": "Compilação real"
+          },
+          "tree_desc": {
+            "en": "Real build: venv + editable install + real test suite",
+            "es": "Build real: venv + instalación editable + suite de tests real",
+            "de": "Echter Build: venv + editierbare Installation + echte Test-Suite",
+            "fr": "Build réel : venv + installation éditable + vraie suite de tests",
+            "it": "Build reale: venv + installazione editable + suite di test reale",
+            "ja": "実際のビルド：venv + editable インストール + 実際のテストスイート",
+            "zh": "真实构建：venv + 可编辑安装 + 真实测试套件",
+            "pt": "Compilação real: venv + instalação editável + suite de testes real"
+          }
+        },
+        {
+          "name": "run.sh / run.bat",
+          "desc": {
+            "en": "Real run: starts the HTTP API",
+            "es": "Ejecución real: arranca la API HTTP",
+            "de": "Echte Ausführung: startet die HTTP-API",
+            "fr": "Exécution réelle : démarre l'API HTTP",
+            "it": "Esecuzione reale: avvia l'API HTTP",
+            "ja": "実際の実行：HTTP API を起動",
+            "zh": "真实运行：启动 HTTP API",
+            "pt": "Execução real: arranca a API HTTP"
+          },
+          "tree_desc": {
+            "en": "Real run: starts the HTTP API",
+            "es": "Ejecución real: arranca la API HTTP",
+            "de": "Echte Ausführung: startet die HTTP-API",
+            "fr": "Exécution réelle : démarre l'API HTTP",
+            "it": "Esecuzione reale: avvia l'API HTTP",
+            "ja": "実際の実行：HTTP API を起動",
+            "zh": "真实运行：启动 HTTP API",
+            "pt": "Execução real: arranca a API HTTP"
+          }
+        },
+        {
+          "name": "CHANGELOG.md",
+          "desc": {
+            "en": "what changed in each version",
+            "es": "qué cambió en cada versión",
+            "de": "was sich in jeder Version geändert hat",
+            "fr": "ce qui a changé à chaque version",
+            "it": "cosa è cambiato in ogni versione",
+            "ja": "各バージョンの変更点",
+            "zh": "每个版本的变更",
+            "pt": "o que mudou em cada versão"
+          }
+        },
+        {
+          "name": "build-test.sh",
+          "desc": {
+            "en": "non-mutating build check",
+            "es": "comprobación de compilación sin cambios",
+            "de": "Build-Prüfung ohne Änderungen",
+            "fr": "vérification de build sans modification",
+            "it": "controllo di build senza modifiche",
+            "ja": "変更を伴わないビルド確認",
+            "zh": "不修改内容的构建检查",
+            "pt": "verificação de compilação sem alterações"
+          }
+        },
+        {
+          "name": "hydra-umc.project.json",
+          "desc": {
+            "en": "manifest: version, maturity, family",
+            "es": "manifiesto: versión, madurez, familia",
+            "de": "Manifest: Version, Reifegrad, Familie",
+            "fr": "manifeste : version, maturité, famille",
+            "it": "manifesto: versione, maturità, famiglia",
+            "ja": "マニフェスト：バージョン、成熟度、ファミリー",
+            "zh": "清单：版本、成熟度、系列",
+            "pt": "manifesto: versão, maturidade, família"
+          }
+        },
+        {
+          "name": "test.sh",
+          "desc": {
+            "en": "runs the tests",
+            "es": "ejecuta las pruebas",
+            "de": "führt die Tests aus",
+            "fr": "lance les tests",
+            "it": "esegue i test",
+            "ja": "テストを実行",
+            "zh": "运行测试",
+            "pt": "executa os testes"
+          }
+        }
+      ]
+    }
+  ]
+}

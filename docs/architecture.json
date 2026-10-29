@@ -1,0 +1,172 @@
+{
+  "repo": "HYDRA-UMC-PRODUCTION-REPORTS",
+  "ecosystem": "hydra",
+  "tagline": "Reports computed on demand from the datalake, reproducible byte for byte, with where every number came from.",
+  "description": "HYDRA-UMC-PRODUCTION-REPORTS queries HYDRA-UMC-DATALAKE for each request, computes OEE and availability over shift windows, and exports reports with provenance in a fixed field order.",
+  "columns": [
+    "WHO ASKS",
+    "THIS REPOSITORY",
+    "WHERE THE DATA IS"
+  ],
+  "nodes": [
+    {
+      "id": "mgr",
+      "column": 0,
+      "level": "tested",
+      "title": "Plant manager's tools",
+      "lines": [
+        "GET /reports/oee and",
+        "/reports/availability"
+      ],
+      "code": [
+        "src/hydra_umc_production_reports/api.py"
+      ]
+    },
+    {
+      "id": "cli",
+      "column": 0,
+      "level": "tested",
+      "title": "CLI",
+      "lines": [
+        "starts the service;",
+        "port 8099 on loopback"
+      ],
+      "code": [
+        "src/hydra_umc_production_reports/main.py"
+      ]
+    },
+    {
+      "id": "dl",
+      "column": 2,
+      "level": "contract",
+      "title": "HYDRA-UMC-DATALAKE",
+      "lines": [
+        "history of telemetry and",
+        "production events"
+      ]
+    },
+    {
+      "id": "dlc",
+      "column": 1,
+      "level": "tested",
+      "title": "datalake_client.py",
+      "lines": [
+        "thin HTTP client of",
+        "the datalake API"
+      ],
+      "code": [
+        "src/hydra_umc_production_reports/datalake_client.py"
+      ]
+    },
+    {
+      "id": "rep",
+      "column": 1,
+      "level": "tested",
+      "title": "reports.py",
+      "lines": [
+        "ties the client to",
+        "the calculations"
+      ],
+      "code": [
+        "src/hydra_umc_production_reports/reports.py"
+      ]
+    },
+    {
+      "id": "shf",
+      "column": 1,
+      "level": "tested",
+      "title": "shift.py",
+      "lines": [
+        "one definition of where",
+        "a day or shift ends"
+      ],
+      "code": [
+        "src/hydra_umc_production_reports/shift.py"
+      ]
+    },
+    {
+      "id": "oee",
+      "column": 1,
+      "level": "tested",
+      "title": "oee.py",
+      "lines": [
+        "availability x performance",
+        "x quality"
+      ],
+      "code": [
+        "src/hydra_umc_production_reports/oee.py"
+      ]
+    },
+    {
+      "id": "avl",
+      "column": 1,
+      "level": "tested",
+      "title": "availability.py",
+      "lines": [
+        "availability from any",
+        "telemetry stream"
+      ],
+      "code": [
+        "src/hydra_umc_production_reports/availability.py"
+      ]
+    },
+    {
+      "id": "exp",
+      "column": 1,
+      "level": "tested",
+      "title": "export.py + provenance.py",
+      "lines": [
+        "fixed fields and floats;",
+        "sources and formula version"
+      ],
+      "code": [
+        "src/hydra_umc_production_reports/export.py",
+        "src/hydra_umc_production_reports/provenance.py"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "mgr",
+      "to": "rep",
+      "level": "tested"
+    },
+    {
+      "from": "cli",
+      "to": "dlc",
+      "level": "tested"
+    },
+    {
+      "from": "dlc",
+      "to": "rep",
+      "level": "tested"
+    },
+    {
+      "from": "rep",
+      "to": "oee",
+      "level": "tested"
+    },
+    {
+      "from": "shf",
+      "to": "oee",
+      "level": "tested"
+    },
+    {
+      "from": "oee",
+      "to": "exp",
+      "level": "tested"
+    },
+    {
+      "from": "avl",
+      "to": "exp",
+      "level": "tested"
+    },
+    {
+      "from": "dlc",
+      "to": "dl",
+      "level": "contract",
+      "label": "HTTP"
+    }
+  ],
+  "footer": "Tried against a local datalake and a fake one on a computer; no plant data."
+}

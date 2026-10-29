@@ -1,26 +1,37 @@
+<!-- =============================================================================
+HYDRA-UMC-PRODUCTION-REPORTS - KPI and OEE reports built from the datalake
+Copyright (C) JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+GPL-3.0-or-later - see LICENSE
+============================================================================= -->
+
 <p align="center">
   <img src="images/HYDRA_UMC_BANNER.svg" alt="HYDRA-UMC-PRODUCTION-REPORTS banner" width="100%">
 </p>
 
-# 📈 HYDRA-UMC-PRODUCTION-REPORTS
+# 📑 HYDRA-UMC-PRODUCTION-REPORTS
 
 <p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | 🇮🇹 <b>Italiano</b> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 📑 Motore di reportistica KPI e OEE automatizzato per i direttori di stabilimento
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Licenza-GPL%203.0-blue.svg" alt="GPL 3.0">
-  <img src="https://img.shields.io/badge/Metriche-OEE%20%2F%20KPI%20%2F%20Cycle--Time-green.svg" alt="Metrics">
-  <img src="https://img.shields.io/badge/Esporta-CSV%20%2F%20JSON-blue.svg" alt="Export">
+  <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
+  <img src="https://img.shields.io/badge/Metrics-OEE%20%2F%20KPI%20%2F%20Cycle--Time-green.svg" alt="Metrics">
+  <img src="https://img.shields.io/badge/Export-CSV%20%2F%20JSON-blue.svg" alt="Export">
+  <img src="https://img.shields.io/badge/Tests-126%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.1.6-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**Verifica di onestà - cosa funziona davvero oggi:** la vera formula OEE (`oee.py`), il vero calcolo di disponibilità basato sui buchi di telemetria (`availability.py`), il vero client HTTP verso il `GET /query` proprio di HYDRA-UMC-DATALAKE (`datalake_client.py`), l'unica fonte di verità per i confini turno/giorno, incluso un vero turno di notte che attraversa la mezzanotte (`shift.py`), l'esportazione CSV riproducibile byte per byte (`export.py`), e la vera API HTTP che espone tutto questo (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`) sono reali e testati (122 test, `pytest`). Ciò che NON è implementato, nonostante sia elencato in "Caratteristiche principali" più sotto come se già funzionasse: non esiste alcuna esportazione PDF da nessuna parte in questo codice (`export.py` scrive solo CSV e una pagina HTML autonoma), nessuna pianificazione di report giornalieri/settimanali/mensili, e nessun meccanismo di email/consegna per "inviare" qualcosa a un manager - ogni report viene calcolato dal vivo, su richiesta, esattamente una volta per chiamata HTTP. Inoltre non esiste ancora una vera fonte di dati `production_event` (nulla in questo ecosistema scrive quello schema oggi, vedi ARCHITETTURA più sotto), quindi l'OEE non è mai stato testato contro un vero HYDRA-UMC-JOB-DISPATCHER in produzione - solo contro un DATALAKE finto nei test e scenari costruiti a mano. Vedi `CHANGELOG.md` per ciò che è stato consegnato finora esattamente, e la TABELLA DI MARCIA più sotto per ciò che resta aperto.
+**Verifica di onestà - cosa funziona davvero oggi:** la vera formula OEE (`oee.py`), il vero calcolo di disponibilità basato sui buchi di telemetria (`availability.py`), il vero client HTTP verso il `GET /query` proprio di HYDRA-UMC-DATALAKE (`datalake_client.py`), l'unica fonte di verità per i confini turno/giorno, incluso un vero turno di notte che attraversa la mezzanotte (`shift.py`), l'esportazione CSV riproducibile byte per byte (`export.py`), e la vera API HTTP che espone tutto questo (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`) sono reali e testati (126 test, `pytest`). Ciò che NON è implementato, nonostante sia elencato in "Caratteristiche principali" più sotto come se già funzionasse: non esiste alcuna esportazione PDF da nessuna parte in questo codice (`export.py` scrive solo CSV e una pagina HTML autonoma), nessuna pianificazione di report giornalieri/settimanali/mensili, e nessun meccanismo di email/consegna per "inviare" qualcosa a un manager - ogni report viene calcolato dal vivo, su richiesta, esattamente una volta per chiamata HTTP. Inoltre non esiste ancora una vera fonte di dati `production_event` (nulla in questo ecosistema scrive quello schema oggi, vedi ARCHITETTURA più sotto), quindi l'OEE non è mai stato testato contro un vero HYDRA-UMC-JOB-DISPATCHER in produzione - solo contro un DATALAKE finto nei test e scenari costruiti a mano. Vedi `CHANGELOG.md` per ciò che è stato consegnato finora esattamente, e la TABELLA DI MARCIA più sotto per ciò che resta aperto.
 
 ---
 
 > **Stato di sicurezza (safety e security):** questo ecosistema non è un sistema di sicurezza certificato. Non esiste ancora un percorso E-STOP hardware, né limiti o interblocchi imposti dal firmware, né un comando di movimento verificato; le immagini firmware sono controllate con CRC32 e un HMAC-SHA256 a chiave condivisa, non con una firma asimmetrica; TLS e TLS reciproco sono opzionali e disattivati per impostazione predefinita; nessuna scheda propria è stata ancora assemblata o provata. Leggi la [base di sicurezza](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md) e il [modello delle minacce](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md) prima di fidarti di qualsiasi affermazione qui per la sicurezza di una persona.
+
+---
 
 ## 📋 In breve
 
@@ -28,10 +39,12 @@
 |---|---|
 | Versione | `0.1.6` |
 | Maturità | Funzionale |
-| Test | 122 (`pytest`) |
+| Test | 126 (`python -m pytest -q tests`) |
 | Tecnologia | Python / real OEE formula / http.server |
 | Destinazione | Il Raspberry Pi CM5 di una cella HYDRA-UMC |
 | Su hardware reale | Non ancora: per questa versione non risulta alcuna esecuzione su hardware reale |
+
+**Vai a:** [Panoramica](#-panoramica) · [Architettura](#-architettura) · [Configurazione](#-configurazione) · [Avvio rapido](#-avvio-rapido) · [Test](#-test) · [Risoluzione dei problemi](#-risoluzione-dei-problemi) · [Struttura del repository](#-struttura-del-repository) · [Progetti correlati](#-progetti-correlati)
 
 ## 🚦 Stato del progetto
 
@@ -42,11 +55,11 @@ Ogni riga è una parte di questo repository e il semaforo dice a che punto è og
 | Area | Stato | Cosa significa qui |
 |---|---|---|
 | Software | 🟡 | Funziona per il suo scopo principale; la verifica di onestà qui sopra elenca ciò che manca ancora |
-| Test | 🟢 | 122 test automatici, eseguiti a ogni modifica |
+| Test | 🟢 | 126 test automatici, eseguiti a ogni modifica |
 | Hardware reale | 🔴 | Non ancora: per questa versione non risulta alcuna esecuzione su hardware reale |
 | Documentazione | 🟢 | README in otto lingue, verificato rispetto al manifesto a ogni modifica |
 
-## 1. 🛠️ PANORAMICA TECNICA
+## 🎯 Panoramica
 
 **HYDRA-UMC-PRODUCTION-REPORTS** è il cervello analitico per la gestione della fabbrica. Elabora i dati grezzi dal Datalake per generare report automatizzati di alto livello sull'efficienza della produzione, la qualità e la disponibilità delle macchine.
 
@@ -63,9 +76,18 @@ Calcola l'**OEE (Overall Equipment Effectiveness)** dell'intero sciame, identifi
 * 🧱 **Sicuro da esporre e onesto sui propri input (v0):** l'API ascolta su `127.0.0.1` salvo diversa indicazione, e un altro indirizzo richiede un token bearer (`--token` / `PRODUCTION_REPORTS_TOKEN`) o `--allow-anonymous`; solo pochi report vengono costruiti contemporaneamente (`503` oltre); i numeri non finiti sono rifiutati con `400`; le finestre sono semiaperte `[start, end)`, quindi un campione sul confine conta in un solo report; `day=` e `shift=` ricavano la finestra dal piano dei turni; `format=html` su un'esportazione restituisce una pagina HTML autonoma; un report dice quando il suo input è incoerente (`inconsistent_input`) e quante letture ha scartato (`unmatched_count`, anche nelle esportazioni). *(implementato)*
 * 🔑 **Legge il data lake con il suo token:** quando HYDRA-UMC-DATALAKE chiede un token Bearer, il client invia `HYDRA_UMC_DATALAKE_READ_TOKEN`, altrimenti `HYDRA_UMC_DATALAKE_TOKEN` (ognuno anche come file, `..._FILE`, la cui prima riga è il token). Senza nessuno non invia alcuna intestazione, come prima, e un rifiuto (401) viene riportato come risposta del data lake stesso. *(implementato)*
 
----
+## 🧩 Ruolo in HYDRA-UMC
 
-## 2. 🔄 FLUSSO DI REPORTISTICA
+**HYDRA-UMC-PRODUCTION-REPORTS** costruisce rapporti di OEE e di disponibilità per i responsabili di stabilimento a partire dallo storico che conserva `HYDRA-UMC-DATALAKE`. Non ha un archivio proprio: ogni richiesta interroga un datalake in funzione, e lo stesso intervallo e gli stessi filtri danno sempre gli stessi byte, con fonti, finestra e versione della formula annotate accanto ai numeri.
+
+## 🏛️ Architettura
+
+<p align="center">
+  <img src="images/architecture.svg" alt="HYDRA-UMC-PRODUCTION-REPORTS architecture" width="100%">
+</p>
+
+<details>
+<summary>Versione testuale del diagramma (Mermaid)</summary>
 
 ```mermaid
 flowchart LR
@@ -75,11 +97,13 @@ flowchart LR
     TPL -.-> DISP["Dashboard / Email / Esporta"]
 ```
 
+</details>
+
+### FLUSSO DI REPORTISTICA
+
 > Le frecce tratteggiate sono pianificate, non implementate: non ci sono PDF, modelli di report, dashboard né invio per e-mail. Le esportazioni sono CSV e una pagina HTML autonoma.
 
----
-
-## 3. 🧱 ARCHITETTURA E DECISIONI DI PROGETTAZIONE
+### ARCHITETTURA E DECISIONI DI PROGETTAZIONE
 
 * **Perché è fratello, non un sottomodulo, di HYDRA-UMC-DATALAKE.** La generazione di report è un lavoro di query+calcolo periodico e di sola lettura su telemetria già memorizzata - tenerla separata significa che una generazione di report non compete mai con le scritture in tempo reale proprie di HYDRA-UMC-TELEMETRY-COLLECTOR per le risorse dello stesso archivio. Questo progetto non ha un proprio database.
 * **Integrazione HTTP reale, non una libreria condivisa.** `datalake_client.py` parla con un'istanza reale di HYDRA-UMC-DATALAKE tramite HTTP semplice (`GET /query`), e deliberatamente NON importa il pacchetto Python di DATALAKE direttamente anche se oggi entrambi convivono nello stesso ambiente di sviluppo - l'HTTP reale è il vero punto di integrazione disaccoppiato, coerente con come servizi/repository separati parlerebbero davvero tra loro in produzione.
@@ -91,51 +115,33 @@ flowchart LR
 * **Perché `formula_version` e `input_fingerprint` sono sul report, non solo nel CSV.** Un report consumato come JSON (da una dashboard, un altro servizio) merita la stessa tracciabilità di uno esportato su file - entrambi i campi sono additivi sulle risposte già esistenti di `GET /reports/oee`/`GET /reports/availability`, non qualcosa visibile solo nell'output di `export.py`.
 * **Perché l'esportazione CSV è un nuovo endpoint, non un flag `?format=csv` sulle rotte esistenti.** Mantenere `GET /reports/oee`/`GET /reports/availability` intatti (ancora reali, ancora JSON, ancora esattamente ciò che `tests/test_api.py` già verificava) ha permesso di aggiungere la funzione di esportazione e dimostrarne la riproducibilità senza toccare nemmeno una risposta già testata.
 
----
+## ⚙️ Configurazione
 
-## 📂 STRUTTURA DELLE CARTELLE
+| Variabile | Predefinito | Cosa imposta |
+|---|---|---|
+| `--addr` | `127.0.0.1` | indirizzo su cui ascolta l'API; un altro indirizzo richiede un token o `--allow-anonymous` |
+| `--port` | `8099` | porta dell'API |
+| `--datalake-url` | `http://localhost:8095` | datalake interrogato da ogni richiesta |
+| `--token` / `PRODUCTION_REPORTS_TOKEN` | nessuno | token Bearer richiesto da ogni rotta tranne `GET /health` |
+| `--max-concurrent-reports` | `4` | rapporti costruiti contemporaneamente; oltre una richiesta riceve 503 |
 
-Servizio puramente software (generazione di report) - senza hardware, firmware o sistema operativo propri; tali cartelle sono omesse secondo la politica della struttura del repository.
+## 🚀 Avvio rapido
 
-```text
-HYDRA-UMC-PRODUCTION-REPORTS/
-├── src/hydra_umc_production_reports/
-│   ├── __init__.py           # Versione del pacchetto
-│   ├── datalake_client.py    # Client HTTP reale per l'API GET /query di HYDRA-UMC-DATALAKE
-│   ├── oee.py                 # Vera formula OEE (Disponibilità x Performance x Qualità)
-│   ├── availability.py        # Vero calcolo del downtime dagli intervalli di telemetria
-│   ├── reports.py             # Orchestrazione: DatalakeClient -> oee.py / availability.py
-│   ├── shift.py                # Vero calcolo dei confini turno/giorno (fonte di verità)
-│   ├── export.py               # Vera esportazione CSV, riproducibile byte per byte
-│   ├── api.py                  # API HTTP reale (GET /reports/oee, /reports/availability, /stats, /export)
-│   ├── main.py                 # Punto di ingresso - avvia il vero server HTTP
-│   └── provenance.py           # Da dove vengono i numeri di un rapporto: fonte, serie, finestra temporale, campioni e versione del programma
-├── tests/                    # Test reali: matematica di OEE/disponibilità/turno/esportazione, round-trip contro un DATALAKE fittizio
-├── docs/
-│   └── API.md                 # Riferimento reale degli endpoint HTTP (richieste, risposte, codici di stato)
-├── images/                   # Media e diagrammi
-├── systemd/
-│   └── hydra-umc-production-reports.service # Unità systemd della API locale di report sulla CM5
-├── tools/
-│   ├── build_test.py         # Controllo build senza versionamento
-│   ├── ci_validate.py        # Validazione manifest/CHANGELOG/docs usata dalla CI
-│   ├── _doc_policy.py        # Regole di documentazione condivise dalla famiglia (copia di quella di HYDRA-UMC-SDK, mantenuta sincronizzata)
-│   ├── _readme_parity.py     # Verifica che gli otto README abbiano la stessa struttura (copia di quella di HYDRA-UMC-SDK, mantenuta sincronizzata)
-│   └── hydra_project_tool.py # Gli stessi comandi in ogni repository: validate, test, ci, version, status, bump
-├── mejoras_futuras.txt        # L'elenco completo e onesto di ciò che è deliberatamente rimandato, e perché
-├── pyproject.toml            # Metadati del pacchetto + extra [dev] (pytest)
-├── bump_version.py           # Incremento di versione stile contachilometri (eseguito solo dal comando `bump` esplicito)
-├── bump_manifest_version.py  # Sincronizza la versione di hydra-umc.project.json con quella nativa (--sync)
-├── build.sh / build.bat      # Build reale: venv + installazione editable + suite di test reale
-├── run.sh / run.bat          # Esecuzione reale: avvia l'API HTTP
-└── README.md
+Richiede Python 3.10 o successivo.
+
+```bash
+./build.sh  # Linux, macOS (build.bat on Windows)
+./run.sh --datalake-url http://localhost:8095
+curl http://127.0.0.1:8099/reports/oee?...
 ```
 
-Vedi [`docs/API.md`](docs/API.md) per il riferimento completo degli endpoint HTTP.
+## 🧪 Test
 
----
+126 test automatici si eseguono con `python -m pytest -q tests`. Non richiedono hardware né nulla al di fuori di questa macchina.
 
-## 4. ⚙️ BUILD ED ESECUZIONE
+La CI esegue `HYDRA_UMC_CI=1 python tools/ci_validate.py`, che controlla il manifesto, i documenti, gli otto README e le immagini.
+
+## 🏗️ Compilazione e rilascio
 
 Richiede Python >= 3.10.
 
@@ -158,18 +164,70 @@ curl "http://localhost:8099/reports/oee?sourceId=robot-1&start=0&end=5000&planne
 curl "http://localhost:8099/reports/availability?sourceId=robot-1&kind=motor_temp&field=value&start=0&end=10000&expectedIntervalMs=1000"
 ```
 
----
+## 🩺 Risoluzione dei problemi
 
-## 🚀 TABELLA DI MARCIA
+| Vedi | Perché | Fai |
+|---|---|---|
+| HTTP 503 | Quattro rapporti sono già in costruzione (ciascuno può portare in memoria fino a due interrogazioni da 200 000 punti) | Riprova a breve, o aumenta `--max-concurrent-reports` se la macchina ha memoria |
+| exit status 2 at start | L'indirizzo non è loopback e non c'è né token né `--allow-anonymous` | Imposta `PRODUCTION_REPORTS_TOKEN` (o `--token`), oppure usa `--allow-anonymous` in laboratorio |
+
+## 📂 Struttura del repository
+
+<p align="center">
+  <img src="images/repository-structure.svg" alt="Repository structure of HYDRA-UMC-PRODUCTION-REPORTS" width="100%">
+</p>
+
+<details>
+<summary>Versione testuale dell'albero</summary>
+
+```text
+HYDRA-UMC-PRODUCTION-REPORTS/
+├── src/hydra_umc_production_reports/   codice sorgente
+│   ├── __init__.py                     Versione del pacchetto
+│   ├── datalake_client.py              Client HTTP reale per l'API GET /query di HYDRA-UMC-DATALAKE
+│   ├── oee.py                          Vera formula OEE (Disponibilità x Performance x Qualità)
+│   ├── availability.py                 Vero calcolo del downtime dagli intervalli di telemetria
+│   ├── reports.py                      Orchestrazione: DatalakeClient -> oee.py / availability.py
+│   ├── shift.py                        Vero calcolo dei confini turno/giorno (fonte di verità)
+│   ├── export.py                       Vera esportazione CSV, riproducibile byte per byte
+│   ├── api.py                          API HTTP reale (GET /reports/oee, /reports/availability, /stats, /export)
+│   ├── main.py                         Punto di ingresso - avvia il vero server HTTP
+│   └── provenance.py                   Da dove vengono i numeri di un rapporto: fonte, serie, finestra temporale, campioni e versione del programma
+├── tests/                              Test reali: matematica di OEE/disponibilità/turno/esportazione, round-trip contro un DATALAKE fittizio
+├── docs/                               documenti del progetto
+├── images/                             Media e diagrammi
+├── systemd/                            unità di servizio
+├── tools/                              strumenti del progetto e controlli della CI
+├── .github/                            workflow di CI e modelli di segnalazione
+├── mejoras_futuras.txt                 L'elenco completo e onesto di ciò che è deliberatamente rimandato, e perché
+├── pyproject.toml                      Metadati del pacchetto + extra [dev] (pytest)
+├── bump_version.py                     Incremento di versione stile contachilometri (eseguito solo dal comando `bump` esplicito)
+├── bump_manifest_version.py            Sincronizza la versione di hydra-umc.project.json con quella nativa (--sync)
+├── build.sh / build.bat                Build reale: venv + installazione editable + suite di test reale
+├── run.sh / run.bat                    Esecuzione reale: avvia l'API HTTP
+├── CHANGELOG.md                        cosa è cambiato in ogni versione
+├── build-test.sh                       controllo di build senza modifiche
+├── hydra-umc.project.json              manifesto: versione, maturità, famiglia
+└── test.sh                             esegue i test
+```
+
+</details>
+
+## 🗺️ Roadmap e limiti noti
+
+**Limiti noti oggi**
+
 * **Fatto (v0):** vero calcolo OEE e disponibilità, vera integrazione HTTP con HYDRA-UMC-DATALAKE, vera API HTTP, veri confini turno/giorno, formule versionate + impronta dell'input, esportazione CSV riproducibile byte per byte.
 * **Prossimo:** una vera fonte di dati `production_event` - far riportare i completamenti dei cicli con questo schema all'orchestratore (o al robot).
 * **Prossimo:** report persistenti/pianificati (oggi ogni report viene calcolato in tempo reale, su richiesta).
 * **Più avanti:** esportazione PDF, un meccanismo di email/consegna, e una dashboard.
 * Analisi ROI guidata dall'IA per l'aggiornamento degli strumenti, collegata a questi stessi dati OEE una volta memorizzati i trend storici.
 
----
+## 🌍 Lingue
 
-## 🔗 Progetti Correlati
+Questo README e i documenti del repository esistono in otto lingue: inglese, spagnolo, tedesco, francese, italiano, giapponese, cinese e portoghese (Portogallo). Sono scritti insieme e la CI verifica che gli otto file abbiano le stesse sezioni e gli stessi link. Questo repository non ha uno schermo né un catalogo di messaggi propri, quindi non ci sono stringhe di interfaccia da tradurre.
+
+## 🔗 Progetti correlati
 
 Questo progetto fa parte dell'ecosistema robotico HYDRA-UMC dello stesso autore (JuanenRac / Electro Hobby 3D). Vale la pena conoscerlo, poiché una richiesta potrebbe in realtà riguardare uno di questi invece di questo repository.
 
@@ -260,21 +318,26 @@ Questo progetto fa parte dell'ecosistema robotico HYDRA-UMC dello stesso autore 
 - **[HYDRA-UMC-OPS-AGENT](https://github.com/JuanenRac/HYDRA-UMC-OPS-AGENT)** — coordinatore di incidenti di manutenzione: un ruolo edge a basso privilegio raccoglie uno snapshot di inventario/salute sanificato, un ruolo control-plane lo rende in sola lettura e chiede a un provider di IA di suggerire una diagnosi - non applica mai una patch né distribuisce nulla.
 - **[HYDRA-UMC-DEV-SERVER](https://github.com/JuanenRac/HYDRA-UMC-DEV-SERVER)** — host di sviluppo riproducibile (Raspberry Pi 5 / CM5) che conserva il codice sorgente dell'ecosistema ed esegue attività delimitate di build/test tramite una coda durevole; un ruolo di sviluppo dedicato, esplicitamente distinto da un CM5 operativo.
 
+## 📚 Documentazione
 
----
+Dove leggere di più:
 
-## 📚 Documentazione e Comunità
+* [Base di sicurezza dell'ecosistema](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
+* [Modello delle minacce dell'ecosistema](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
+* [Registro delle modifiche di questo repository](CHANGELOG.md)
+* [Licenza di questo repository](LICENSE.md)
 
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — stack tecnologico e linee guida di codifica per una pull request.
-- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — gli standard di comportamento attesi in questa comunità.
-- **[SECURITY.md](SECURITY.md)** — come segnalare una vulnerabilità, e le reali aree di attenzione sulla sicurezza di questo progetto.
-- **[SUPPORT.md](SUPPORT.md)** — dove porre domande e segnalare bug.
-- **[LICENSE.md](LICENSE.md)** — la licenza propria di questo progetto.
+## 🤝 Contribuire e comunità
+
+* Prima di una pull request esegui `HYDRA_UMC_CI=1 py -3 tools/ci_validate.py` (oppure `HYDRA_UMC_CI=1 python3 tools/ci_validate.py`): deve stampare `CI_VALIDATION=PASS`. Non eseguire `build.sh` né `build.bat` per questa verifica; compilare non è verificare.
+* I otto README sono scritti da un'unica fonte in HYDRA-UMC-DOCS; non modificarli a mano. Cambia la fonte e riscrivili con `tools/make_readmes.py`.
+* Non affermare in un README ciò che non è stato eseguito: scrivi «simulato» o «non provato su hardware» quando è la verità.
+* Vedi [CONTRIBUTING.md](CONTRIBUTING.md), il [codice di condotta](CODE_OF_CONDUCT.md), [SECURITY.md](SECURITY.md) e [SUPPORT.md](SUPPORT.md).
 
 ## 👤 AUTORE
-**JuanenRac** (Electro Hobby 3D)
-📧 electrohobby3d@gmail.com
-📺 [youtube.com/@electrohobby3d](https://youtube.com/@electrohobby3d)
+
+**JuanenRac (Electro Hobby 3D)** · electrohobby3d@gmail.com
 
 ## 📜 LICENZA
-GPL-3.0 - Vedere LICENSE per i dettagli.
+
+GPL-3.0-or-later - [LICENSE](LICENSE).

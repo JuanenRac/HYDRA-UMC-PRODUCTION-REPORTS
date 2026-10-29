@@ -1,26 +1,37 @@
+<!-- =============================================================================
+HYDRA-UMC-PRODUCTION-REPORTS - KPI and OEE reports built from the datalake
+Copyright (C) JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+GPL-3.0-or-later - see LICENSE
+============================================================================= -->
+
 <p align="center">
   <img src="images/HYDRA_UMC_BANNER.svg" alt="HYDRA-UMC-PRODUCTION-REPORTS banner" width="100%">
 </p>
 
-# 📈 HYDRA-UMC-PRODUCTION-REPORTS
+# 📑 HYDRA-UMC-PRODUCTION-REPORTS
 
 <p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | 🇨🇳 <b>简体中文</b> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 📑 面向工厂管理者的自动化 KPI 与 OEE 报告引擎
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
+  <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Metrics-OEE%20%2F%20KPI%20%2F%20Cycle--Time-green.svg" alt="Metrics">
   <img src="https://img.shields.io/badge/Export-CSV%20%2F%20JSON-blue.svg" alt="Export">
+  <img src="https://img.shields.io/badge/Tests-126%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.1.6-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**诚实核查——今天真正能跑起来的部分：** 真实的 OEE 公式（`oee.py`）、基于遥测数据缺口的真实可用性计算（`availability.py`）、指向 HYDRA-UMC-DATALAKE 自身 `GET /query` 的真实 HTTP 客户端（`datalake_client.py`）、班次/自然日边界的唯一真实基准——包括真实的跨越午夜的夜班（`shift.py`）、逐字节可复现的 CSV 导出（`export.py`），以及把这一切都暴露出来的真实 HTTP API（`api.py`：`GET /reports/oee`、`/reports/availability`、`/reports/{oee,availability}/export`、`/stats`）都是真实且经过测试的（122 个测试，`pytest`）。下面"关键特性"中列出但实际上尚未实现的部分：本代码库中完全没有任何 PDF 导出（`export.py` 只会写 CSV 和一个自包含的 HTML 页面）、没有每日/每周/每月报告的调度机制，也没有向管理者"发送"任何内容的邮件/投递机制——每份报告都是按需实时计算的，每次 HTTP 调用恰好计算一次。目前也还没有真实的 `production_event` 数据源（本生态系统中今天没有任何项目写入该模式，见下面的"架构"），因此 OEE 从未在生产环境中针对真实运行的 HYDRA-UMC-JOB-DISPATCHER 做过验证——只在测试中针对一个伪造的 DATALAKE 以及手工构造的场景验证过。已交付的具体内容见 `CHANGELOG.md`，尚未完成的部分见下面的路线图。
+**诚实核查——今天真正能跑起来的部分：** 真实的 OEE 公式（`oee.py`）、基于遥测数据缺口的真实可用性计算（`availability.py`）、指向 HYDRA-UMC-DATALAKE 自身 `GET /query` 的真实 HTTP 客户端（`datalake_client.py`）、班次/自然日边界的唯一真实基准——包括真实的跨越午夜的夜班（`shift.py`）、逐字节可复现的 CSV 导出（`export.py`），以及把这一切都暴露出来的真实 HTTP API（`api.py`：`GET /reports/oee`、`/reports/availability`、`/reports/{oee,availability}/export`、`/stats`）都是真实且经过测试的（126 个测试，`pytest`）。下面"关键特性"中列出但实际上尚未实现的部分：本代码库中完全没有任何 PDF 导出（`export.py` 只会写 CSV 和一个自包含的 HTML 页面）、没有每日/每周/每月报告的调度机制，也没有向管理者"发送"任何内容的邮件/投递机制——每份报告都是按需实时计算的，每次 HTTP 调用恰好计算一次。目前也还没有真实的 `production_event` 数据源（本生态系统中今天没有任何项目写入该模式，见下面的"架构"），因此 OEE 从未在生产环境中针对真实运行的 HYDRA-UMC-JOB-DISPATCHER 做过验证——只在测试中针对一个伪造的 DATALAKE 以及手工构造的场景验证过。已交付的具体内容见 `CHANGELOG.md`，尚未完成的部分见下面的路线图。
 
 ---
 
 > **安全与安防现状:**本生态系统不是经认证的安全系统。目前尚无硬件 E-STOP 通路,没有由固件强制执行的限位或联锁,也没有经过验证的运动指令;固件映像使用 CRC32 和共享密钥的 HMAC-SHA256 校验,而非非对称签名;TLS 与双向 TLS 均为可选项,默认关闭;自制电路板尚未组装或测试。在依赖此处任何说法来保障人身安全之前,请先阅读[安全基线](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)和[威胁模型](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)。
+
+---
 
 ## 📋 速览
 
@@ -28,10 +39,12 @@
 |---|---|
 | 版本 | `0.1.6` |
 | 成熟度 | 可用 |
-| 测试 | 122 (`pytest`) |
+| 测试 | 126 (`python -m pytest -q tests`) |
 | 技术栈 | Python / real OEE formula / http.server |
 | 目标 | HYDRA-UMC 工作单元的 Raspberry Pi CM5 |
 | 真实硬件 | 尚未：此版本没有在真实硬件上运行的记录 |
+
+**跳转：** [概述](#-概述) · [架构](#-架构) · [配置](#-配置) · [快速开始](#-快速开始) · [测试](#-测试) · [故障排除](#-故障排除) · [仓库结构](#-仓库结构) · [相关项目](#-相关项目)
 
 ## 🚦 项目状态
 
@@ -42,11 +55,11 @@
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟡 | 主要用途可用；上面的诚实性检查列出了仍然缺少的内容 |
-| 测试 | 🟢 | 122 项自动测试，每次变更都会运行 |
+| 测试 | 🟢 | 126 项自动测试，每次变更都会运行 |
 | 真实硬件 | 🔴 | 尚未：此版本没有在真实硬件上运行的记录 |
 | 文档 | 🟢 | 八种语言的 README，每次变更都会与清单核对 |
 
-## 1. 🛠️ 技术概述
+## 🎯 概述
 
 **HYDRA-UMC-PRODUCTION-REPORTS** 是工厂管理的分析大脑。它处理来自数据
 湖的原始数据，生成关于生产效率、质量和机器可用性的自动化高层报告。
@@ -65,9 +78,18 @@
 * 🧱 **可安全暴露，并对输入保持诚实（v0）：** 除非另行指定，API 监听 `127.0.0.1`，其他地址需要 bearer 令牌（`--token` / `PRODUCTION_REPORTS_TOKEN`）或 `--allow-anonymous`；同一时间只构建少量报告（超出返回 `503`）；非有限数值以 `400` 拒绝；窗口为半开区间 `[start, end)`，因此边界上的样本只计入一份报告；`day=` 和 `shift=` 根据班次计划推导窗口；导出时使用 `format=html` 会返回自包含的 HTML 页面；报告会说明其输入何时不一致（`inconsistent_input`）以及丢弃了多少读数（`unmatched_count`，导出中也有）。*（已实现）*
 * 🔑 **使用令牌读取数据湖：** 当 HYDRA-UMC-DATALAKE 要求 Bearer 令牌时，客户端发送 `HYDRA_UMC_DATALAKE_READ_TOKEN`，否则发送 `HYDRA_UMC_DATALAKE_TOKEN`（二者也可作为文件 `..._FILE` 给出，第一行即令牌）。都未设置时与以前一样不发送头部，被拒绝（401）会作为数据湖自身的应答报告。*（已实现）*
 
----
+## 🧩 在 HYDRA-UMC 中的角色
 
-## 2. 🔄 报告流程
+**HYDRA-UMC-PRODUCTION-REPORTS** 根据 `HYDRA-UMC-DATALAKE` 保存的历史数据，为工厂管理者生成 OEE 和可用率报告。它没有自己的存储：每个请求都会查询一个正在运行的数据湖，相同的范围和过滤条件总是得到相同的字节，数字旁边记录着来源、时间窗口和公式版本。
+
+## 🏛️ 架构
+
+<p align="center">
+  <img src="images/architecture.svg" alt="HYDRA-UMC-PRODUCTION-REPORTS architecture" width="100%">
+</p>
+
+<details>
+<summary>图表的文本版本（Mermaid）</summary>
 
 ```mermaid
 flowchart LR
@@ -77,11 +99,13 @@ flowchart LR
     TPL -.-> DISP["Dashboard / Email / Export"]
 ```
 
+</details>
+
+### 报告流程
+
 > 虚线箭头仅为计划，尚未实现：没有 PDF、报告模板、仪表板或电子邮件投递。导出格式为 CSV 和自包含的 HTML 页面。
 
----
-
-## 3. 🧱 架构与设计决策
+### 架构与设计决策
 
 * **为何这是 HYDRA-UMC-DATALAKE 的兄弟项目，而非子模块。** 报告生成是一项针对已存储遥测数据的周期性、只读的“查询+计算”任务——将其保持独立，意味着报告生成永远不会与 HYDRA-UMC-TELEMETRY-COLLECTOR 自身对同一存储资源的实时写入相竞争。本项目没有自己的数据库。
 * **真实的 HTTP 集成，而非共享库。** `datalake_client.py` 通过纯 HTTP（`GET /query`）与一个真实运行中的 HYDRA-UMC-DATALAKE 实例通信，并且刻意不直接导入 DATALAKE 的 Python 包——尽管两者目前处于同一个开发环境中。真实的 HTTP 才是真正解耦的集成接口，符合生产环境中独立仓库/服务之间实际通信的方式。
@@ -93,52 +117,33 @@ flowchart LR
 * **为何 `formula_version` 和 `input_fingerprint` 在报告本身上，而不仅仅在 CSV 中。** 以 JSON 形式被消费的报告（被仪表盘、其他服务读取）应当享有与导出到文件的报告同等的可追溯性——这两个字段是对现有 `GET /reports/oee`/`GET /reports/availability` 响应的增量添加，而不是只在 `export.py` 输出中才能看到的东西。
 * **为何 CSV 导出是一个新端点，而不是在现有路由上加一个 `?format=csv` 标志。** 保持 `GET /reports/oee`/`GET /reports/availability` 不变（依旧真实、依旧是 JSON、依旧完全符合 `tests/test_api.py` 已有的断言），意味着可以在不碰触任何已测试响应的前提下添加导出功能，并证明其可复现性。
 
----
+## ⚙️ 配置
 
-## 📂 目录结构
+| 变量 | 默认值 | 设置内容 |
+|---|---|---|
+| `--addr` | `127.0.0.1` | API 绑定的地址；其他地址需要令牌或 `--allow-anonymous` |
+| `--port` | `8099` | API 端口 |
+| `--datalake-url` | `http://localhost:8095` | 每个请求所查询的数据湖 |
+| `--token` / `PRODUCTION_REPORTS_TOKEN` | 无 | 除 `GET /health` 外所有路由都需要的 Bearer 令牌 |
+| `--max-concurrent-reports` | `4` | 同时生成的报告数；超过后请求得到 503 |
 
-纯软件服务（报告生成）——没有自己的硬件、固件或操作系统；这些目录按照
-仓库结构策略予以省略。
+## 🚀 快速开始
 
-```text
-HYDRA-UMC-PRODUCTION-REPORTS/
-├── src/hydra_umc_production_reports/
-│   ├── __init__.py           # 包版本
-│   ├── datalake_client.py    # 针对 HYDRA-UMC-DATALAKE 的 GET /query API 的真实 HTTP 客户端
-│   ├── oee.py                 # 真实的 OEE 公式（可用性 x 性能 x 质量）
-│   ├── availability.py        # 基于遥测间隔的真实停机计算
-│   ├── reports.py             # 编排层：DatalakeClient -> oee.py / availability.py
-│   ├── shift.py                # 真实的班次/日边界计算（真实基准）
-│   ├── export.py               # 真实的、逐字节可复现的 CSV 导出
-│   ├── api.py                  # 真实的 HTTP API（GET /reports/oee、/reports/availability、/stats、/export）
-│   ├── main.py                 # 入口点——启动真实的 HTTP 服务器
-│   └── provenance.py           # 报告数字的来源: 数据源、序列、时间窗口、样本数和程序版本
-├── tests/                    # 真实测试：OEE/可用性/班次/导出的计算逻辑，针对伪造 DATALAKE 的往返测试
-├── docs/
-│   └── API.md                 # 真实的 HTTP 端点参考（请求、响应、状态码）
-├── images/                   # 媒体与图示
-├── systemd/
-│   └── hydra-umc-production-reports.service # CM5 本地报告 API 的 systemd 单元
-├── tools/
-│   ├── build_test.py         # 不递增版本号的构建/编译检查
-│   ├── ci_validate.py        # CI 使用的 manifest/CHANGELOG/docs 校验
-│   ├── _doc_policy.py        # 家族共享的文档规则 (HYDRA-UMC-SDK 的副本,保持同步)
-│   ├── _readme_parity.py     # 检查八个 README 结构一致 (HYDRA-UMC-SDK 的副本,保持同步)
-│   └── hydra_project_tool.py # 每个仓库相同的命令: validate、test、ci、version、status、bump
-├── mejoras_futuras.txt        # 完整、诚实地列出哪些内容被有意推迟及原因
-├── pyproject.toml            # 包元数据 + [dev] extras（pytest）
-├── bump_version.py           # 里程表式版本递增（仅由显式 `bump` 命令运行）
-├── bump_manifest_version.py  # 将 hydra-umc.project.json 的版本与原生版本同步（--sync）
-├── build.sh / build.bat      # 真实构建：venv + 可编辑安装 + 真实测试套件
-├── run.sh / run.bat          # 真实运行：启动 HTTP API
-└── README.md
+需要 Python 3.10 或更高版本。
+
+```bash
+./build.sh  # Linux, macOS (build.bat on Windows)
+./run.sh --datalake-url http://localhost:8095
+curl http://127.0.0.1:8099/reports/oee?...
 ```
 
-完整的 HTTP 端点参考见 [`docs/API.md`](docs/API.md)。
+## 🧪 测试
 
----
+运行 `python -m pytest -q tests` 会执行 126 个自动测试。 不需要硬件，也不需要这台机器以外的任何东西。
 
-## 4. ⚙️ 构建与运行
+CI 运行 `HYDRA_UMC_CI=1 python tools/ci_validate.py`，检查清单、文档、八个 README 和图片。
+
+## 🏗️ 构建与发布
 
 需要 Python >= 3.10。
 
@@ -164,16 +169,68 @@ curl "http://localhost:8099/reports/oee?sourceId=robot-1&start=0&end=5000&planne
 curl "http://localhost:8099/reports/availability?sourceId=robot-1&kind=motor_temp&field=value&start=0&end=10000&expectedIntervalMs=1000"
 ```
 
----
+## 🩺 故障排除
 
-## 🚀 路线图
+| 你看到 | 原因 | 处理 |
+|---|---|---|
+| HTTP 503 | 已有四份报告正在生成（每份最多可把两次各 200,000 点的查询载入内存） | 稍后重试，或在机器内存足够时调大 `--max-concurrent-reports` |
+| exit status 2 at start | 地址不是回环，且既没有令牌也没有 `--allow-anonymous` | 设置 `PRODUCTION_REPORTS_TOKEN`（或 `--token`），或在实验室使用 `--allow-anonymous` |
+
+## 📂 仓库结构
+
+<p align="center">
+  <img src="images/repository-structure.svg" alt="Repository structure of HYDRA-UMC-PRODUCTION-REPORTS" width="100%">
+</p>
+
+<details>
+<summary>目录树的文本版本</summary>
+
+```text
+HYDRA-UMC-PRODUCTION-REPORTS/
+├── src/hydra_umc_production_reports/   源代码
+│   ├── __init__.py                     包版本
+│   ├── datalake_client.py              针对 HYDRA-UMC-DATALAKE 的 GET /query API 的真实 HTTP 客户端
+│   ├── oee.py                          真实的 OEE 公式（可用性 x 性能 x 质量）
+│   ├── availability.py                 基于遥测间隔的真实停机计算
+│   ├── reports.py                      编排层：DatalakeClient -> oee.py / availability.py
+│   ├── shift.py                        真实的班次/日边界计算（真实基准）
+│   ├── export.py                       真实的、逐字节可复现的 CSV 导出
+│   ├── api.py                          真实的 HTTP API（GET /reports/oee、/reports/availability、/stats、/export）
+│   ├── main.py                         入口点——启动真实的 HTTP 服务器
+│   └── provenance.py                   报告数字的来源: 数据源、序列、时间窗口、样本数和程序版本
+├── tests/                              真实测试：OEE/可用性/班次/导出的计算逻辑，针对伪造 DATALAKE 的往返测试
+├── docs/                               项目文档
+├── images/                             媒体与图示
+├── systemd/                            服务单元
+├── tools/                              项目工具和 CI 检查
+├── .github/                            CI 工作流和 Issue 模板
+├── mejoras_futuras.txt                 完整、诚实地列出哪些内容被有意推迟及原因
+├── pyproject.toml                      包元数据 + [dev] extras（pytest）
+├── bump_version.py                     显式提升版本
+├── bump_manifest_version.py            将 hydra-umc.project.json 的版本与原生版本同步（--sync）
+├── build.sh / build.bat                真实构建：venv + 可编辑安装 + 真实测试套件
+├── run.sh / run.bat                    真实运行：启动 HTTP API
+├── CHANGELOG.md                        每个版本的变更
+├── build-test.sh                       不修改内容的构建检查
+├── hydra-umc.project.json              清单：版本、成熟度、系列
+└── test.sh                             运行测试
+```
+
+</details>
+
+## 🗺️ 路线图与已知限制
+
+**当前已知限制**
+
 * **已完成（v0）：** 真实的 OEE 与可用性计算、与 HYDRA-UMC-DATALAKE 的真实 HTTP 集成、真实的 HTTP API、真实的班次/日边界、版本化公式 + 输入指纹、逐字节可复现的 CSV 导出。
 * **下一步：** 真实的 `production_event` 数据源——让编排器（或机器人）以此 schema 报告周期完成情况。
 * **下一步：** 持久化/定时生成的报告（目前每份报告都是按需实时计算的）。
 * **稍后：** PDF 导出、邮件/投递机制，以及仪表盘。
 * 面向工具升级的 AI 驱动 ROI 分析，一旦存储了历史趋势数据，将与这些相同的 OEE 数据相连接。
 
----
+## 🌍 语言
+
+本 README 和仓库文档提供八种语言：英语、西班牙语、德语、法语、意大利语、日语、中文和葡萄牙语（葡萄牙）。它们同时编写，并由 CI 检查八个文件拥有相同的章节和相同的链接。 本仓库没有自己的界面或消息目录，因此没有需要翻译的界面文字。
 
 ## 🔗 相关项目
 
@@ -266,21 +323,26 @@ curl "http://localhost:8099/reports/availability?sourceId=robot-1&kind=motor_tem
 - **[HYDRA-UMC-OPS-AGENT](https://github.com/JuanenRac/HYDRA-UMC-OPS-AGENT)** — 维护事件协调器：一个低权限的边缘角色采集经过脱敏的库存/健康快照，一个控制面角色以只读方式渲染它，并请求某个 AI 提供方给出诊断建议——从不应用补丁，也从不部署任何内容。
 - **[HYDRA-UMC-DEV-SERVER](https://github.com/JuanenRac/HYDRA-UMC-DEV-SERVER)** — 可复现的开发主机（Raspberry Pi 5 / CM5），保存整个生态系统的源代码，并在持久队列下运行有界的构建/测试任务；这是专用的开发角色，明确区别于运行中的 CM5。
 
+## 📚 文档
 
----
+更多阅读：
 
-## 📚 文档与社区
+* [生态系统的安全基线](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
+* [生态系统的威胁模型](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
+* [本仓库的更新日志](CHANGELOG.md)
+* [本仓库的许可证](LICENSE.md)
 
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** —— 提交 Pull Request 所需的技术栈和编码规范。
-- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** —— 本社区所期望的行为准则。
-- **[SECURITY.md](SECURITY.md)** —— 如何报告漏洞，以及本项目真实的安全关注重点。
-- **[SUPPORT.md](SUPPORT.md)** —— 在哪里提问和报告缺陷。
-- **[LICENSE.md](LICENSE.md)** —— 本项目自身的许可证。
+## 🤝 参与贡献与社区
+
+* 提交 pull request 之前，请运行 `HYDRA_UMC_CI=1 py -3 tools/ci_validate.py`（或 `HYDRA_UMC_CI=1 python3 tools/ci_validate.py`）：它必须输出 `CI_VALIDATION=PASS`。此检查不要运行 `build.sh` 或 `build.bat`；构建不是检查。
+* 八个 README 由 HYDRA-UMC-DOCS 中的同一个源生成；请勿手工编辑。修改源文件，再用 `tools/make_readmes.py` 重新生成。
+* 不要在 README 中声称尚未运行过的内容：属实时请写“仅模拟”或“尚未在硬件上试过”。
+* 请参阅 [CONTRIBUTING.md](CONTRIBUTING.md)、[行为准则](CODE_OF_CONDUCT.md)、[SECURITY.md](SECURITY.md) 和 [SUPPORT.md](SUPPORT.md)。
 
 ## 👤 作者
-**JuanenRac** (Electro Hobby 3D)
-📧 electrohobby3d@gmail.com
-📺 [youtube.com/@electrohobby3d](https://youtube.com/@electrohobby3d)
+
+**JuanenRac (Electro Hobby 3D)** · electrohobby3d@gmail.com
 
 ## 📜 许可证
-GPL-3.0 —— 详见 LICENSE。
+
+GPL-3.0-or-later - [LICENSE](LICENSE).
