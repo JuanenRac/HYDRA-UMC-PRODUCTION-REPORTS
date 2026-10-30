@@ -13,13 +13,14 @@ instance.
 from __future__ import annotations
 
 import hashlib
+import math
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
 
-from .availability import AvailabilityReport, compute_availability
-from .datalake_client import DatalakeClient, Point
+from .availability import AvailabilityReport, compute_availability, compute_availability_from_buckets
+from .datalake_client import DatalakeClient, DatalakeError, Point
 from . import __version__
-from .oee import OEEError, OEEReport, ProductionEvent, compute_oee
+from .oee import OEEError, OEEReport, ProductionEvent, compute_oee, compute_oee_from_totals
 from .provenance import Provenance
 
 # This project's own v0 convention for a "production event" telemetry
@@ -88,6 +89,56 @@ def _query_all_or_raise(client: DatalakeClient, *, source_id: str, kind: str, fi
     return points
 
 
+# The data lake answers GET /aggregate with at most this many buckets.
+MAX_AGGREGATE_BUCKETS = 100_000
+
+
+def _window_total(client: DatalakeClient, *, source_id: str, kind: str, field: str, start_ms: int, end_ms: int) -> tuple[int, float] | None:
+    """How many points the window [start, end) holds and what they add up to, asked of the data lake as ONE bucket of GET /aggregate
+    (cached, see DatalakeClient.aggregate). `None` when the data lake has no /aggregate (an older one): the caller then reads the points."""
+    try:
+        buckets = client.aggregate(source_id=source_id, kind=kind, field=field, start=start_ms, before=end_ms, bucket_ms=end_ms - start_ms, agg="sum")
+    except DatalakeError as error:
+        if error.status in (400, 404, 405, 501):
+            return None
+        raise
+    count = sum(b.count for b in buckets)
+    return count, math.fsum(b.value for b in buckets)
+
+
+def _oee_from_totals(
+    *, source_id: str, start_ms: int, end_ms: int, planned_time_s: float, ideal_cycle_time_s: float, good: tuple[int, float], cycle: tuple[int, float]
+) -> OEEReport:
+    """OEE of a window that holds more events than one query can bring in, from the sums that the data lake adds up itself."""
+    total, good_sum = good
+    cycles, cycle_sum = cycle
+    if total <= 0:
+        raise ReportError("no production_event data found for this source/window")
+    # "good" is 1.0 or 0.0 per cycle, so its sum is the number of good parts; anything else cannot be a count of parts
+    if good_sum < 0 or good_sum > total or good_sum != int(good_sum):
+        raise ReportError("the 'good' readings of this window are not all 0 or 1: the window cannot be summed")
+    try:
+        report = compute_oee_from_totals(
+            total_count=total, good_count=int(good_sum), operating_time_s=cycle_sum, planned_time_s=planned_time_s, ideal_cycle_time_s=ideal_cycle_time_s
+        )
+    except OEEError as e:
+        raise ReportError(str(e)) from e
+    return replace(
+        report,
+        unmatched_count=abs(total - cycles),
+        inconsistent_input=report.inconsistent_input or planned_time_s > (end_ms - start_ms) / 1000,
+        provenance=Provenance(
+            source_id=source_id,
+            kind=PRODUCTION_EVENT_KIND,
+            fields=(GOOD_FIELD, CYCLE_TIME_FIELD),
+            window_start_ms=start_ms,
+            window_end_ms=end_ms,
+            points_used=total + cycles,
+            generator_version=__version__,
+        ),
+    )
+
+
 def oee_from_datalake(
     client: DatalakeClient,
     *,
@@ -104,6 +155,15 @@ def oee_from_datalake(
     synthetic or assumed data.
     """
     _check_window(start_ms, end_ms)
+    # A window with more events than one query brings in is summed by the data lake (GET /aggregate) instead of failing.
+    good_total = _window_total(client, source_id=source_id, kind=PRODUCTION_EVENT_KIND, field=GOOD_FIELD, start_ms=start_ms, end_ms=end_ms)
+    if good_total is not None and good_total[0] >= MAX_POINTS_PER_QUERY:
+        cycle_total = _window_total(client, source_id=source_id, kind=PRODUCTION_EVENT_KIND, field=CYCLE_TIME_FIELD, start_ms=start_ms, end_ms=end_ms)
+        if cycle_total is not None:
+            return _oee_from_totals(
+                source_id=source_id, start_ms=start_ms, end_ms=end_ms, planned_time_s=planned_time_s,
+                ideal_cycle_time_s=ideal_cycle_time_s, good=good_total, cycle=cycle_total,
+            )
     good_points = _query_all_or_raise(client, source_id=source_id, kind=PRODUCTION_EVENT_KIND, field=GOOD_FIELD, start_ms=start_ms, end_ms=end_ms)
     cycle_points = _query_all_or_raise(client, source_id=source_id, kind=PRODUCTION_EVENT_KIND, field=CYCLE_TIME_FIELD, start_ms=start_ms, end_ms=end_ms)
 
@@ -186,6 +246,12 @@ def availability_from_datalake(
     computes real downtime from real gaps in when it actually arrived.
     """
     _check_window(start_ms, end_ms)
+    total = _window_total(client, source_id=source_id, kind=kind, field=field, start_ms=start_ms, end_ms=end_ms)
+    if total is not None and total[0] >= MAX_POINTS_PER_QUERY:
+        return _availability_from_buckets(
+            client, source_id=source_id, kind=kind, field=field, start_ms=start_ms, end_ms=end_ms,
+            expected_interval_ms=expected_interval_ms, gap_factor=gap_factor, points=total[0],
+        )
     points = _query_all_or_raise(client, source_id=source_id, kind=kind, field=field, start_ms=start_ms, end_ms=end_ms)
     timestamps = [p.timestamp for p in points]
     report = compute_availability(
@@ -205,6 +271,40 @@ def availability_from_datalake(
             window_end_ms=end_ms,
             points_used=len(points),
             generator_version=__version__,
+        ),
+    )
+
+
+def _availability_from_buckets(
+    client: DatalakeClient, *, source_id: str, kind: str, field: str, start_ms: int, end_ms: int, expected_interval_ms: float, gap_factor: float, points: int
+) -> AvailabilityReport:
+    """Availability of a window with more points than one query brings in: the buckets of GET /aggregate that hold points.
+
+    A bucket is as wide as the expected interval, but not so narrow that the window needs more buckets than the data lake answers;
+    when even that is wider than the gap threshold the gaps cannot be seen and the report is refused."""
+    if not math.isfinite(expected_interval_ms) or expected_interval_ms <= 0:
+        raise ReportError("expected_interval_ms must be a finite, positive number")
+    window = end_ms - start_ms
+    bucket_ms = max(1, int(expected_interval_ms), -(-window // MAX_AGGREGATE_BUCKETS))
+    if bucket_ms > expected_interval_ms * gap_factor:
+        raise ReportError(
+            f"the window holds {points} points, more than one query brings in, and the {bucket_ms} ms resolution that the data lake allows for it "
+            "is coarser than the gap threshold: narrow the window"
+        )
+    buckets = client.aggregate(source_id=source_id, kind=kind, field=field, start=start_ms, before=end_ms, bucket_ms=bucket_ms, agg="sum")
+    report = compute_availability_from_buckets(
+        [b.bucket_start for b in buckets],
+        bucket_ms=bucket_ms,
+        window_start_ms=start_ms,
+        window_end_ms=end_ms,
+        expected_interval_ms=expected_interval_ms,
+        gap_factor=gap_factor,
+    )
+    return replace(
+        report,
+        provenance=Provenance(
+            source_id=source_id, kind=kind, fields=(field,), window_start_ms=start_ms, window_end_ms=end_ms,
+            points_used=sum(b.count for b in buckets), generator_version=__version__,
         ),
     )
 

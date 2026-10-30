@@ -22,8 +22,25 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Callable
+
+
+CACHE_TTL_VARIABLE = "HYDRA_UMC_PRODUCTION_REPORTS_CACHE_TTL_SECONDS"
+DEFAULT_CACHE_TTL_SECONDS = 30.0
+MAX_CACHE_ENTRIES = 256
+
+
+def cache_ttl_from_environment(environ: dict[str, str] | None = None) -> float:
+    """Seconds an aggregate is reused without asking the data lake anything: `HYDRA_UMC_PRODUCTION_REPORTS_CACHE_TTL_SECONDS`,
+    default 30. `0` asks the data lake only for the fingerprint of the series each time; a negative or unreadable value is the default."""
+    env = os.environ if environ is None else environ
+    try:
+        value = float(env.get(CACHE_TTL_VARIABLE, "").strip())
+    except ValueError:
+        return DEFAULT_CACHE_TTL_SECONDS
+    return value if value >= 0 and value == value and value != float("inf") else DEFAULT_CACHE_TTL_SECONDS
 
 
 READ_TOKEN_VARIABLES = ("HYDRA_UMC_DATALAKE_READ_TOKEN", "HYDRA_UMC_DATALAKE_TOKEN")
@@ -59,7 +76,13 @@ class DatalakeError(RuntimeError):
     """Raised when a real request to DATALAKE fails or DATALAKE itself
     reports an error - never swallowed silently, since a report built on
     a request that silently returned nothing would look like "no data"
-    instead of "couldn't ask"."""
+    instead of "couldn't ask".
+
+    `status` is the HTTP status DATALAKE answered with, when it answered."""
+
+    def __init__(self, message: str, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status
 
 
 @dataclass(frozen=True)
@@ -74,6 +97,16 @@ class Point:
     value: float
 
 
+@dataclass(frozen=True)
+class Bucket:
+    """One bucket of DATALAKE's GET /aggregate: where it starts, its reduced value and how many raw points fell into it.
+    A bucket without points is not returned by the data lake."""
+
+    bucket_start: int
+    value: float
+    count: int
+
+
 class DatalakeClient:
     """A real client against one running HYDRA-UMC-DATALAKE instance."""
 
@@ -86,8 +119,18 @@ class DatalakeClient:
         retry_delay_seconds: float = 0.5,
         sleep: Callable[[float], None] = time.sleep,
         token: str | None = None,
+        cache_ttl_seconds: float | None = None,
+        cache_entries: int = MAX_CACHE_ENTRIES,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self.base_url = base_url.rstrip("/")
+        # aggregates already asked for: key = source, kind, field, reducer, bucket, window and the fingerprint of the series
+        self.cache_ttl_seconds = cache_ttl_from_environment() if cache_ttl_seconds is None else max(0.0, float(cache_ttl_seconds))
+        self._cache_entries = max(0, int(cache_entries))  # 0 turns the cache off
+        self._cache: "OrderedDict[tuple, tuple[float, str, list[Bucket]]]" = OrderedDict()
+        self._clock = clock
+        self.cache_hits = 0
+        self.cache_misses = 0
         # The bearer token the data lake asks for (read role). `None` reads it from the environment, "" sends none.
         self._token = _usable_token(token_from_environment() if token is None else token)
         self.timeout_s = timeout_s
@@ -116,7 +159,7 @@ class DatalakeClient:
                     raw = resp.read()
             except urllib.error.HTTPError as e:
                 body = e.read().decode("utf-8", errors="replace")
-                raise DatalakeError(f"DATALAKE returned HTTP {e.code} for {path}: {body}") from e
+                raise DatalakeError(f"DATALAKE returned HTTP {e.code} for {path}: {body}", status=e.code) from e
             except (urllib.error.URLError, OSError, http.client.HTTPException) as e:
                 # urlopen only wraps a failure to send the request in a
                 # URLError: a timeout or a reset while the answer is being
@@ -172,3 +215,63 @@ class DatalakeClient:
             ]
         except (KeyError, TypeError) as e:
             raise DatalakeError(f"DATALAKE answered /query with a shape this client does not know: {e!r}") from e
+
+    def series_fingerprint(self, *, source_id: str, kind: str, field: str) -> str | None:
+        """What the data lake holds for one series right now: its point count and its first and last timestamp (from GET /series).
+        An aggregate that was computed when this was the same is still right. `None` when the data lake does not say (an older one,
+        a series that does not exist): nothing is then reused."""
+        try:
+            raw = self._get("/series", {"kind": kind, "limit": 100000})
+        except DatalakeError as error:
+            if error.status is None and "not JSON" not in str(error):
+                raise  # the data lake cannot be reached at all: say so now, once, and do not try the next request
+            return None
+        if not isinstance(raw, list):
+            return None
+        for entry in raw:
+            if isinstance(entry, dict) and entry.get("sourceId") == source_id and entry.get("field") == field:
+                return f"{entry.get('count')}|{entry.get('firstTimestamp')}|{entry.get('lastTimestamp')}"
+        return None
+
+    def aggregate(
+        self,
+        *,
+        source_id: str,
+        kind: str,
+        field: str,
+        start: int,
+        before: int,
+        bucket_ms: int,
+        agg: str = "avg",
+    ) -> list[Bucket]:
+        """Real GET /aggregate over the half-open window [start, before): one bucket per `bucket_ms` that holds points, aligned to `start`.
+
+        The answer is kept for `cache_ttl_seconds`; after that the fingerprint of the series (see `series_fingerprint`) decides: the
+        same fingerprint refreshes the entry, a different one (new or deleted points) asks the data lake again."""
+        key = (self.base_url, source_id, kind, field, agg, bucket_ms, start, before)
+        now = self._clock()
+        cached = self._cache.get(key) if self._cache_entries else None
+        if cached is not None and now - cached[0] < self.cache_ttl_seconds:
+            self.cache_hits += 1
+            self._cache.move_to_end(key)
+            return list(cached[2])
+        fingerprint = self.series_fingerprint(source_id=source_id, kind=kind, field=field) if self._cache_entries else None
+        if cached is not None and fingerprint is not None and cached[1] == fingerprint:
+            self.cache_hits += 1
+            self._cache[key] = (now, fingerprint, cached[2])
+            self._cache.move_to_end(key)
+            return list(cached[2])
+        self.cache_misses += 1
+        raw = self._get(
+            "/aggregate",
+            {"sourceId": source_id, "kind": kind, "field": field, "bucketMs": bucket_ms, "start": start, "before": before, "agg": agg},
+        )
+        try:
+            buckets = [Bucket(bucket_start=int(b["bucketStart"]), value=float(b["value"]), count=int(b["count"])) for b in raw]
+        except (KeyError, TypeError, ValueError) as e:
+            raise DatalakeError(f"DATALAKE answered /aggregate with a shape this client does not know: {e!r}") from e
+        if self._cache_entries and fingerprint is not None:
+            self._cache[key] = (now, fingerprint, buckets)
+            while len(self._cache) > self._cache_entries:
+                self._cache.popitem(last=False)
+        return list(buckets)

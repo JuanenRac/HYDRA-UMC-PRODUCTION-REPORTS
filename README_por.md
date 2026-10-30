@@ -116,6 +116,8 @@ flowchart LR
 * **Porque `formula_version` e `input_fingerprint` estão no relatório e não apenas no CSV.** Um relatório consumido como JSON (por um painel, outro serviço) merece a mesma rastreabilidade que um exportado para ficheiro - ambos os campos são aditivos nas respostas existentes de `GET /reports/oee`/`GET /reports/availability`, e não algo visível só na saída do `export.py`.
 * **Porque a exportação CSV é um endpoint novo e não uma opção `?format=csv` nas rotas existentes.** Manter o `GET /reports/oee`/`GET /reports/availability` intocados (ainda reais, ainda JSON, ainda exatamente o que o `tests/test_api.py` já afirmava) permitiu acrescentar a funcionalidade de exportação e provar a sua reprodutibilidade sem tocar numa única resposta já testada.
 
+**Janelas demasiado grandes para uma consulta.** Um relatório pergunta primeiro ao data lake quantos pontos tem a janela (`GET /aggregate`). Uma janela acima do limite de 200 000 pontos já não é recusada: o OEE é construído com os totais que o próprio data lake soma (`method` é `aggregate`) e a disponibilidade com os intervalos que contêm pontos, com a exatidão de um intervalo. As respostas de `/aggregate` ficam em memória por fonte, tipo, campo, redutor, intervalo, janela e impressão digital da série; são reutilizadas durante `--cache-ttl-seconds` (30 por predefinição, ou `HYDRA_UMC_PRODUCTION_REPORTS_CACHE_TTL_SECONDS`) e depois só são renovadas se a série mudou. `--no-cache` não guarda nada.
+
 ## ⚙️ Configuração
 
 | Variável | Predefinição | O que define |

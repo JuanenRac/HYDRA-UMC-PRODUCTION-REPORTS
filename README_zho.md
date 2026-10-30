@@ -118,6 +118,8 @@ flowchart LR
 * **为何 `formula_version` 和 `input_fingerprint` 在报告本身上，而不仅仅在 CSV 中。** 以 JSON 形式被消费的报告（被仪表盘、其他服务读取）应当享有与导出到文件的报告同等的可追溯性——这两个字段是对现有 `GET /reports/oee`/`GET /reports/availability` 响应的增量添加，而不是只在 `export.py` 输出中才能看到的东西。
 * **为何 CSV 导出是一个新端点，而不是在现有路由上加一个 `?format=csv` 标志。** 保持 `GET /reports/oee`/`GET /reports/availability` 不变（依旧真实、依旧是 JSON、依旧完全符合 `tests/test_api.py` 已有的断言），意味着可以在不碰触任何已测试响应的前提下添加导出功能，并证明其可复现性。
 
+**对单次查询来说过大的时间窗口。** 报告先向数据湖询问窗口内有多少个点（`GET /aggregate`）。超过 20 万个点上限的窗口不再被拒绝：OEE 由数据湖自己累加的总数构成（`method` 为 `aggregate`），可用性由含有数据点的区间构成，精确到一个区间。`/aggregate` 的答复按来源、类型、字段、归约方式、区间、窗口和序列指纹缓存在内存中；在 `--cache-ttl-seconds`（默认 30，或 `HYDRA_UMC_PRODUCTION_REPORTS_CACHE_TTL_SECONDS`）内直接复用，之后仅当序列发生变化时才更新。`--no-cache` 不保存任何内容。
+
 ## ⚙️ 配置
 
 | 变量 | 默认值 | 设置内容 |

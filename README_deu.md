@@ -116,6 +116,8 @@ flowchart LR
 * **Warum `formula_version` und `input_fingerprint` im Bericht stehen, nicht nur in der CSV.** Ein als JSON konsumierter Bericht (von einem Dashboard, einem anderen Dienst) verdient dieselbe Rückverfolgbarkeit wie einer, der in eine Datei exportiert wird - beide Felder sind additiv zu den bestehenden Antworten von `GET /reports/oee`/`GET /reports/availability`, nicht etwas, das nur in der Ausgabe von `export.py` sichtbar ist.
 * **Warum der CSV-Export ein neuer Endpunkt ist, kein `?format=csv`-Flag auf den bestehenden Routen.** `GET /reports/oee`/`GET /reports/availability` unangetastet zu lassen (weiterhin echt, weiterhin JSON, weiterhin genau das, was `tests/test_api.py` bereits geprüft hat) bedeutete, dass die Export-Funktion hinzugefügt und als reproduzierbar nachgewiesen werden konnte, ohne eine einzige bereits getestete Antwort zu berühren.
 
+**Zeitfenster, die für eine Abfrage zu groß sind.** Ein Bericht fragt zuerst den Data Lake, wie viele Punkte das Fenster enthält (`GET /aggregate`). Ein Fenster über der Grenze von 200.000 Punkten wird nicht mehr abgelehnt: Die OEE wird aus den Summen gebildet, die der Data Lake selbst bildet (`method` ist `aggregate`), und die Verfügbarkeit aus den Intervallen, die Punkte enthalten, auf ein Intervall genau. Die Antworten von `/aggregate` werden im Speicher nach Quelle, Art, Feld, Reduzierer, Intervall, Fenster und dem Fingerabdruck der Reihe zwischengespeichert; sie werden `--cache-ttl-seconds` lang wiederverwendet (Standard 30, oder `HYDRA_UMC_PRODUCTION_REPORTS_CACHE_TTL_SECONDS`) und danach nur erneuert, wenn sich die Reihe geändert hat. `--no-cache` speichert nichts.
+
 ## ⚙️ Konfiguration
 
 | Variable | Standard | Was sie festlegt |

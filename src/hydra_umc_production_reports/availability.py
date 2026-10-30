@@ -48,6 +48,10 @@ class AvailabilityReport:
     formula_version: str
     input_fingerprint: str
     provenance: Provenance | None = None
+    # "points": gaps between the real timestamps. "aggregate": built from the buckets that hold points (GET /aggregate of the data
+    # lake) because the window holds too many points to bring in; a gap is then the run of empty buckets, so it is measured to
+    # the resolution of the bucket.
+    method: str = "points"
 
 
 def _fingerprint_timestamps(timestamps_ms: list[int]) -> str:
@@ -115,4 +119,52 @@ def compute_availability(
         availability=availability,
         formula_version=FORMULA_VERSION,
         input_fingerprint=_fingerprint_timestamps(points),
+    )
+
+
+def compute_availability_from_buckets(
+    bucket_starts_ms: list[int],
+    *,
+    bucket_ms: int,
+    window_start_ms: int,
+    window_end_ms: int,
+    expected_interval_ms: float,
+    gap_factor: float = 3.0,
+) -> AvailabilityReport:
+    """Availability from the buckets of GET /aggregate that hold at least one point (an empty bucket is not returned).
+
+    Every bucket is `bucket_ms` wide and aligned to `window_start_ms`. A run of empty buckets (or the empty edge of the window)
+    longer than `expected_interval_ms * gap_factor` is downtime. Compared with the real timestamps this is exact to one
+    bucket: a gap is measured from the end of the last bucket that has a point to the start of the next one, so it can be
+    shorter than the real gap by up to two buckets and never longer."""
+    if window_end_ms <= window_start_ms:
+        raise AvailabilityError("window_end_ms must be after window_start_ms")
+    if not math.isfinite(expected_interval_ms) or expected_interval_ms <= 0:
+        raise AvailabilityError("expected_interval_ms must be a finite, positive number")
+    if not math.isfinite(gap_factor) or gap_factor < 1:
+        raise AvailabilityError("gap_factor must be a finite number of at least 1")
+    if bucket_ms <= 0:
+        raise AvailabilityError("bucket_ms must be positive")
+    threshold_ms = expected_interval_ms * gap_factor
+    starts = sorted({s for s in bucket_starts_ms if window_start_ms <= s < window_end_ms})
+    periods: list[DowntimePeriod] = []
+    cursor = window_start_ms
+    for start in starts:
+        if start - cursor > threshold_ms:
+            periods.append(DowntimePeriod(start_ms=cursor, end_ms=start))
+        cursor = min(start + bucket_ms, window_end_ms)
+    if window_end_ms - cursor > threshold_ms:
+        periods.append(DowntimePeriod(start_ms=cursor, end_ms=window_end_ms))
+    downtime_ms = sum(p.duration_ms for p in periods)
+    availability = max(0.0, min(1.0, 1.0 - downtime_ms / (window_end_ms - window_start_ms)))
+    canonical = f"buckets|{bucket_ms}|" + ";".join(str(s) for s in starts)
+    return AvailabilityReport(
+        window_start_ms=window_start_ms,
+        window_end_ms=window_end_ms,
+        downtime_periods=periods,
+        downtime_ms=downtime_ms,
+        availability=availability,
+        formula_version=FORMULA_VERSION,
+        input_fingerprint=hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        method="aggregate",
     )

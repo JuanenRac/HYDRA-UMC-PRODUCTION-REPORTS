@@ -22,7 +22,7 @@ import sys
 
 from . import __version__
 from .api import DEFAULT_MAX_CONCURRENT_REPORTS, ReportsServer
-from .datalake_client import DatalakeClient
+from .datalake_client import MAX_CACHE_ENTRIES, DatalakeClient
 
 PROJECT_NAME = "HYDRA-UMC-PRODUCTION-REPORTS"
 ROLE = (
@@ -78,6 +78,14 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_MAX_CONCURRENT_REPORTS,
         help="reports built at the same time; more requests get 503",
     )
+    parser.add_argument(
+        "--cache-ttl-seconds",
+        type=float,
+        default=None,
+        help="seconds an aggregate of the data lake is reused without asking anything; after that the fingerprint of the series decides "
+        "(default: the HYDRA_UMC_PRODUCTION_REPORTS_CACHE_TTL_SECONDS environment variable, else 30; 0 revalidates every time)",
+    )
+    parser.add_argument("--no-cache", action="store_true", help="do not keep the aggregates of the data lake")
     args = parser.parse_args(argv)
 
     problem = startup_problem(args.addr, args.token, args.allow_anonymous)
@@ -88,7 +96,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"{PROJECT_NAME} v{__version__}")
     print(ROLE)
 
-    client = DatalakeClient(args.datalake_url)
+    client = DatalakeClient(args.datalake_url, cache_ttl_seconds=args.cache_ttl_seconds, cache_entries=0 if args.no_cache else MAX_CACHE_ENTRIES)
     server = ReportsServer(
         (args.addr, args.port), client, token=args.token, max_concurrent_reports=max(1, args.max_concurrent_reports)
     )

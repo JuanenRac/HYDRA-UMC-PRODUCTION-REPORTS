@@ -76,6 +76,7 @@ A number that is `nan`, `inf` or not a number is a `400`; it is never passed on 
 - `formula_version` - which real version of the OEE formula produced this report (`oee.FORMULA_VERSION`) - only changes if the formula itself changes.
 - `input_fingerprint` - a real sha256 over the exact production events used, order-independent (events that share a timestamp are ordered by their other fields first) - two reports with the same fingerprint were computed from the same real input data.
 - `unmatched_count` - readings that could not be used: a `good` with no `cycleTimeS` at the same timestamp (or the reverse), or a `good` that is not exactly `0` or `1`. Cycles that share a millisecond are paired in order.
+- `method` - `events` when every production event was read and paired, `aggregate` when the window holds more events than one query brings in (200,000 points) and the totals come from `GET /aggregate` of the data lake: the same sums (count, good parts, cycle time), but the cycles are not paired, so `unmatched_count` is the difference between the number of `good` and of `cycleTimeS` readings, and the `good` readings must all be `0` or `1` (otherwise the report is refused).
 - `inconsistent_input` - `true` when the cycles add up to more operating time than `plannedTimeS`, or `plannedTimeS` is longer than the window itself (overlapping cycles, several stations under one source id, cycles that began before the window). Availability is then capped at 100% and the product understates the real figure: do not take the numbers at face value.
 
 **Errors**
@@ -176,6 +177,14 @@ Computes an availability report by finding gaps between consecutive sample times
 ## `GET /reports/availability/export`
 
 Same query parameters as `GET /reports/availability` above, rendered as a real, reproducible CSV - see `GET /reports/oee/export` above for the same guarantee and rationale.
+
+---
+
+## Aggregates of the data lake and their cache
+
+Before reading the points of a window, a report asks the data lake for how many it holds (`GET /aggregate`, one bucket over the window). A window that fits in one query is read point by point, as before. A window that does not is no longer refused: the OEE comes from the totals the data lake adds up (`method` is `aggregate`), and the availability from the buckets that hold points: a bucket is as wide as the expected interval (wider only when the window would need more than 100,000 buckets), a gap is a run of empty buckets longer than the gap threshold, and it is measured to the resolution of the bucket, never longer than the real gap. When even that resolution is coarser than the gap threshold, the report is refused and asks for a narrower window. A data lake without `/aggregate` is read point by point.
+
+The answers of `/aggregate` are kept in memory (at most 256), keyed by source, kind, field, reducer, bucket width, window and the fingerprint of the series (its point count and its first and last timestamp, from `GET /series`). An answer is reused without asking the data lake anything for `--cache-ttl-seconds` (default `30`, or the `HYDRA_UMC_PRODUCTION_REPORTS_CACHE_TTL_SECONDS` environment variable); after that the fingerprint decides: the same fingerprint renews the entry, a different one (points added or deleted) asks again. `0` checks the fingerprint every time; `--no-cache` keeps nothing.
 
 ---
 

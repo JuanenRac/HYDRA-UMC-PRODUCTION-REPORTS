@@ -70,6 +70,10 @@ class OEEReport:
     # and the product understates the real figure, so the numbers cannot be
     # taken at face value.
     inconsistent_input: bool = False
+    # "events": built from every production event (paired one by one). "aggregate": built from the totals the data lake adds up
+    # (count, good parts and cycle time of the window) because the window holds too many events to bring in; the numbers are the
+    # same sums, but the cycles cannot be paired, so `unmatched_count` is the difference between the two counts.
+    method: str = "events"
 
 
 def _fingerprint_events(events: list[ProductionEvent]) -> str:
@@ -149,4 +153,44 @@ def compute_oee(
         formula_version=FORMULA_VERSION,
         input_fingerprint=_fingerprint_events(events),
         inconsistent_input=operating_time_s > planned_time_s,
+    )
+
+
+def compute_oee_from_totals(
+    *,
+    total_count: int,
+    good_count: int,
+    operating_time_s: float,
+    planned_time_s: float,
+    ideal_cycle_time_s: float,
+) -> OEEReport:
+    """The same OEE as `compute_oee`, from the totals of a window (what GET /aggregate of the data lake adds up) instead of its events.
+
+    The fingerprint covers the totals and the inputs, so two reports of the same totals have the same one."""
+    if isinstance(total_count, bool) or not isinstance(total_count, int) or total_count <= 0:
+        raise OEEError("cannot compute OEE from zero production events")
+    if isinstance(good_count, bool) or not isinstance(good_count, int) or not 0 <= good_count <= total_count:
+        raise OEEError("good_count must be between 0 and the total count")
+    if not math.isfinite(planned_time_s) or planned_time_s <= 0:
+        raise OEEError("planned_time_s must be a finite, positive number")
+    if not math.isfinite(ideal_cycle_time_s) or ideal_cycle_time_s <= 0:
+        raise OEEError("ideal_cycle_time_s must be a finite, positive number")
+    if not math.isfinite(operating_time_s) or operating_time_s < 0:
+        raise OEEError(f"operating_time_s must be a finite, non-negative number, got {operating_time_s!r}")
+    availability = min(operating_time_s / planned_time_s, 1.0)
+    performance = min((ideal_cycle_time_s * total_count) / operating_time_s, 1.0) if operating_time_s > 0 else 0.0
+    quality = good_count / total_count
+    canonical = f"totals|{total_count}|{good_count}|{operating_time_s!r}"
+    return OEEReport(
+        availability=availability,
+        performance=performance,
+        quality=quality,
+        oee=availability * performance * quality,
+        total_count=total_count,
+        good_count=good_count,
+        operating_time_s=operating_time_s,
+        formula_version=FORMULA_VERSION,
+        input_fingerprint=hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        inconsistent_input=operating_time_s > planned_time_s,
+        method="aggregate",
     )
