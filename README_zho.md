@@ -77,6 +77,7 @@ GPL-3.0-or-later - see LICENSE
 * 📤 **可复现的 CSV 导出：** `GET /reports/{oee,availability}/export` —— 对相同输入产生逐字节完全一致的输出，而不仅仅是“足够接近”。*（已实现）* 以 `=`、`+`、`-` 或 `@` 开头的自由文本单元格（源 ID、过滤值）会被加上前导撇号，这样电子表格就不会把它当作公式执行。
 * 🧱 **可安全暴露，并对输入保持诚实（v0）：** 除非另行指定，API 监听 `127.0.0.1`，其他地址需要 bearer 令牌（`--token` / `PRODUCTION_REPORTS_TOKEN`）或 `--allow-anonymous`；同一时间只构建少量报告（超出返回 `503`）；非有限数值以 `400` 拒绝；窗口为半开区间 `[start, end)`，因此边界上的样本只计入一份报告；`day=` 和 `shift=` 根据班次计划推导窗口；导出时使用 `format=html` 会返回自包含的 HTML 页面；报告会说明其输入何时不一致（`inconsistent_input`）以及丢弃了多少读数（`unmatched_count`，导出中也有）。*（已实现）*
 * 🔑 **使用令牌读取数据湖：** 当 HYDRA-UMC-DATALAKE 要求 Bearer 令牌时，客户端发送 `HYDRA_UMC_DATALAKE_READ_TOKEN`，否则发送 `HYDRA_UMC_DATALAKE_TOKEN`（二者也可作为文件 `..._FILE` 给出，第一行即令牌）。都未设置时与以前一样不发送头部，被拒绝（401）会作为数据湖自身的应答报告。*（已实现）*
+* 🏭 **整个机群的 OEE:** `GET /reports/oee/fleet` 在同一时间窗口内计算多个来源的 OEE，给出每个来源的报告、整组的合并数字(全部运行时间除以全部计划时间、全部良品除以全部产品)以及瓶颈(OEE 最低的来源和拉低它的因素)。没有数据的来源会连同原因一起列出，不会遮住其他来源。
 
 ## 🧩 在 HYDRA-UMC 中的角色
 
