@@ -12,8 +12,9 @@ instance.
 """
 from __future__ import annotations
 
+import hashlib
 from collections import defaultdict
-from dataclasses import replace
+from dataclasses import dataclass, field, replace
 
 from .availability import AvailabilityReport, compute_availability
 from .datalake_client import DatalakeClient, Point
@@ -206,3 +207,100 @@ def availability_from_datalake(
             generator_version=__version__,
         ),
     )
+
+
+# The most sources one fleet report takes: each one is two queries.
+MAX_FLEET_SOURCES = 50
+
+
+@dataclass(frozen=True)
+class FleetOEEReport:
+    """OEE of several sources (robots, cells) over the same window.
+
+    `sources` holds the report of every source that could be built and
+    `failed` the reason of every one that could not, so one robot without data
+    does not hide the others. `combined` weights each source by its own
+    counts and times: availability is all the operating time over all the
+    planned time, performance all the ideal time over all the operating time
+    (clamped), quality all the good parts over all the parts. `bottleneck` is
+    the source with the lowest OEE and the factor (availability, performance
+    or quality) that pulls it down; it is None with fewer than two sources."""
+
+    sources: dict[str, OEEReport]
+    failed: dict[str, str]
+    combined: OEEReport | None
+    bottleneck: dict[str, object] | None = None
+    formula_version: str = field(default="oee-v1")
+
+
+def combine_oee(reports: dict[str, OEEReport], *, planned_time_s: float, ideal_cycle_time_s: float) -> OEEReport:
+    """The OEE of the whole group from the report of each source (see FleetOEEReport)."""
+    if not reports:
+        raise ReportError("no source has a report to combine")
+    total = sum(r.total_count for r in reports.values())
+    good = sum(r.good_count for r in reports.values())
+    operating = sum(r.operating_time_s for r in reports.values())
+    planned = planned_time_s * len(reports)
+    availability = min(operating / planned, 1.0)
+    performance = min(ideal_cycle_time_s * total / operating, 1.0) if operating > 0 else 0.0
+    quality = good / total
+    joined = "\n".join(f"{name}|{r.input_fingerprint}" for name, r in sorted(reports.items()))
+    return OEEReport(
+        availability=availability,
+        performance=performance,
+        quality=quality,
+        oee=availability * performance * quality,
+        total_count=total,
+        good_count=good,
+        operating_time_s=operating,
+        formula_version=next(iter(reports.values())).formula_version,
+        input_fingerprint=hashlib.sha256(joined.encode("utf-8")).hexdigest(),
+        unmatched_count=sum(r.unmatched_count for r in reports.values()),
+        inconsistent_input=any(r.inconsistent_input for r in reports.values()) or operating > planned,
+    )
+
+
+def find_bottleneck(reports: dict[str, OEEReport]) -> dict[str, object] | None:
+    """The source with the lowest OEE and its weakest factor; None with fewer than two sources."""
+    if len(reports) < 2:
+        return None
+    name, report = min(reports.items(), key=lambda item: (item[1].oee, item[0]))
+    factors = {"availability": report.availability, "performance": report.performance, "quality": report.quality}
+    weakest = min(factors, key=lambda f: (factors[f], f))
+    return {"sourceId": name, "oee": report.oee, "weakestFactor": weakest, "weakestValue": factors[weakest]}
+
+
+def fleet_oee_from_datalake(
+    client: DatalakeClient,
+    *,
+    source_ids: list[str],
+    start_ms: int,
+    end_ms: int,
+    planned_time_s: float,
+    ideal_cycle_time_s: float,
+) -> FleetOEEReport:
+    """OEE of each source and of the group (see FleetOEEReport). A source that
+    has no usable data goes to `failed` with its reason; a DATALAKE that cannot
+    be reached at all raises its own DatalakeError, because then no source can
+    be judged."""
+    names = list(dict.fromkeys(source_ids))
+    if not names:
+        raise ReportError("give at least one source")
+    if len(names) > MAX_FLEET_SOURCES:
+        raise ReportError(f"at most {MAX_FLEET_SOURCES} sources per report")
+    sources: dict[str, OEEReport] = {}
+    failed: dict[str, str] = {}
+    for name in names:
+        try:
+            sources[name] = oee_from_datalake(
+                client,
+                source_id=name,
+                start_ms=start_ms,
+                end_ms=end_ms,
+                planned_time_s=planned_time_s,
+                ideal_cycle_time_s=ideal_cycle_time_s,
+            )
+        except ReportError as error:
+            failed[name] = str(error)
+    combined = combine_oee(sources, planned_time_s=planned_time_s, ideal_cycle_time_s=ideal_cycle_time_s) if sources else None
+    return FleetOEEReport(sources=sources, failed=failed, combined=combined, bottleneck=find_bottleneck(sources))

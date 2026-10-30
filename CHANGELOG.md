@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **`GET /reports/oee/fleet`:** the OEE of several sources over one window, with the report of each, the combined figures of the group (all the operating time over all the planned time, all the good parts over all the parts) and the bottleneck, which is the source with the lowest OEE and the factor that pulls it down. A source without data is listed with its reason and does not hide the others.
 - **README in the universal layout:** the README and its seven translations follow the layout that the four families share (22 sections in a fixed order), with an architecture picture and a repository-structure picture drawn from `docs/architecture.json` and `docs/structure.json`; the CI validator checks both pictures and the file tree.
 
 - **The layout of the README is checked in the CI:** the validator runs `tools/universal_readme_check.py` and lists, as a warning, what differs from the universal layout of the README.

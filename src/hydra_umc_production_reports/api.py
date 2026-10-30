@@ -24,7 +24,7 @@ from .availability import AvailabilityError
 from .datalake_client import DatalakeClient, DatalakeError
 from .export import export_availability_csv, export_availability_html, export_oee_csv, export_oee_html
 from .oee import OEEError
-from .reports import ReportError, availability_from_datalake, oee_from_datalake
+from .reports import ReportError, availability_from_datalake, fleet_oee_from_datalake, oee_from_datalake
 from .shift import ShiftError, ShiftSchedule, day_window_ms, shift_window_ms
 
 # How many reports may be built at the same time. Each one can bring up to
@@ -205,6 +205,7 @@ class Handler(BaseHTTPRequestHandler):
         routes = {
             "/reports/oee": self._handle_oee,
             "/reports/oee/export": self._handle_oee_export,
+            "/reports/oee/fleet": self._handle_oee_fleet,
             "/reports/availability": self._handle_availability,
             "/reports/availability/export": self._handle_availability_export,
         }
@@ -262,6 +263,38 @@ class Handler(BaseHTTPRequestHandler):
         if built is None:
             return
         _write_json(self, 200, built[0])
+
+    def _handle_oee_fleet(self, params: dict[str, str]) -> None:
+        """OEE of several sources over one window and of the group: `sourceIds` is a comma-separated list; the rest is as in /reports/oee."""
+        required = {"sourceIds", "idealCycleTimeS"}
+        if "day" not in params:
+            required |= {"plannedTimeS"}
+        missing = required - params.keys()
+        if missing:
+            _write_error(self, 400, f"missing required params: {sorted(missing)}")
+            return
+        try:
+            start_ms, end_ms, shift_planned_s = _window(params)
+            planned_time_s = _number(params, "plannedTimeS", positive=True) if "plannedTimeS" in params else shift_planned_s
+            if planned_time_s is None:
+                raise ParamError("plannedTimeS is required")
+            ideal_cycle_time_s = _number(params, "idealCycleTimeS", positive=True)
+            source_ids = [name.strip() for name in params["sourceIds"].split(",") if name.strip()]
+            report = fleet_oee_from_datalake(
+                self.server.client,
+                source_ids=source_ids,
+                start_ms=start_ms,
+                end_ms=end_ms,
+                planned_time_s=planned_time_s,
+                ideal_cycle_time_s=ideal_cycle_time_s,
+            )
+        except DatalakeError as e:
+            _write_error(self, 502, f"could not read from DATALAKE: {e}")
+            return
+        except (ParamError, ReportError, OEEError, ValueError) as e:
+            _write_error(self, 400, str(e))
+            return
+        _write_json(self, 200, report)
 
     def _handle_oee_export(self, params: dict[str, str]) -> None:
         # The format is checked before anything is queried: a wrong one is a

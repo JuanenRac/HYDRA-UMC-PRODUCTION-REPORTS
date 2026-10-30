@@ -90,6 +90,27 @@ A number that is `nan`, `inf` or not a number is a `400`; it is never passed on 
 
 ---
 
+## `GET /reports/oee/fleet`
+
+OEE of several sources (robots, cells) over one window, and of the group. Same parameters as `GET /reports/oee`, with `sourceIds` (a comma-separated list, at most 50 different names) in place of `sourceId`; `plannedTimeS` is the planned time of EACH source.
+
+```json
+{
+  "sources": {"robot-1": {"availability": 1.0, "performance": 1.0, "quality": 1.0, "oee": 1.0, "...": "..."}},
+  "failed": {"robot-9": "no production_event data found for this source/window"},
+  "combined": {"availability": 1.0, "performance": 1.0, "quality": 0.7, "oee": 0.7, "total_count": 10, "good_count": 7, "...": "..."},
+  "bottleneck": {"sourceId": "robot-2", "oee": 0.4, "weakestFactor": "quality", "weakestValue": 0.4},
+  "formula_version": "oee-v1"
+}
+```
+
+- `sources` - the report of every source that could be built, exactly as `GET /reports/oee` would answer for it.
+- `failed` - the reason for each source that could not (no data, an incomplete window); one robot without data does not hide the others.
+- `combined` - the group as a whole: availability is all the operating time over all the planned time, performance is all the ideal time over all the operating time (at most 1), quality is all the good parts over all the parts. `null` when no source could be built.
+- `bottleneck` - the source with the lowest OEE and the factor that pulls it down (`availability`, `performance` or `quality`); `null` with fewer than two sources.
+
+**Errors** - `400` for missing or invalid parameters or an empty or oversized list, `502` if DATALAKE is unreachable.
+
 ## `GET /reports/oee/export`
 
 Same query parameters, same real query+compute as `GET /reports/oee` above, rendered as a real, reproducible CSV instead of JSON - calling this twice with the same parameters against the same DATALAKE history always returns byte-for-byte identical output. See [`export.py`](../src/hydra_umc_production_reports/export.py). `format=html` (default `csv`) returns the same data as a self-contained HTML page with an embedded SVG chart (no external script or style); any other `format` is a `400`.
