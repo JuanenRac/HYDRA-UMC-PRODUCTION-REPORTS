@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.1.7] - Reports of windows that do not fit in one query, a cache of the aggregates, the fleet OEE and the universal README
+
 - **Reports of windows that do not fit in one query.** A report asks the data lake how many points the window holds (`GET /aggregate`). A window above the cap of 200,000 points is no longer refused: the OEE is built from the totals the data lake adds up (`method` is `aggregate`; the sums are the same, the cycles are not paired and `unmatched_count` is the difference between the two counts) and the availability from the buckets that hold points (exact to one bucket, never longer than the real gap; refused when the resolution is coarser than the gap threshold). A data lake without `/aggregate` is read point by point as before.
 - **Cache of the aggregates.** The answers of `/aggregate` are kept in memory, keyed by source, kind, field, reducer, bucket, window and the fingerprint of the series (from `GET /series`); they are reused for `--cache-ttl-seconds` (default 30, or `HYDRA_UMC_PRODUCTION_REPORTS_CACHE_TTL_SECONDS`) and then renewed only if the series changed. `0` checks every time; `--no-cache` keeps nothing. Tested against the real data lake package as well as against a stand-in.
 - **`GET /reports/oee/fleet`:** the OEE of several sources over one window, with the report of each, the combined figures of the group (all the operating time over all the planned time, all the good parts over all the parts) and the bottleneck, which is the source with the lowest OEE and the factor that pulls it down. A source without data is listed with its reason and does not hide the others.

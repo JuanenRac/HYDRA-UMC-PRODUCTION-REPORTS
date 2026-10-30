@@ -19,7 +19,7 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/Metrics-OEE%20%2F%20KPI%20%2F%20Cycle--Time-green.svg" alt="Metrics">
   <img src="https://img.shields.io/badge/Export-CSV%20%2F%20JSON-blue.svg" alt="Export">
   <img src="https://img.shields.io/badge/Tests-133%20passing-2ea44f.svg" alt="Tests">
-  <img src="https://img.shields.io/badge/Version-0.1.6-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Version-0.1.7-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
@@ -37,7 +37,7 @@ GPL-3.0-or-later - see LICENSE
 
 | | |
 |---|---|
-| 版本 | `0.1.6` |
+| 版本 | `0.1.7` |
 | 成熟度 | 可用 |
 | 测试 | 133 (`python -m pytest -q tests`) |
 | 技术栈 | Python / real OEE formula / http.server |

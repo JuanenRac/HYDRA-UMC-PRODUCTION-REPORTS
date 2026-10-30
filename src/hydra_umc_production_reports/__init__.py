@@ -11,4 +11,4 @@ availability (OEE). Child of HYDRA-UMC-DATALAKE in the Data & Analytics
 category.
 """
 
-__version__ = "0.1.6"
+__version__ = "0.1.7"
