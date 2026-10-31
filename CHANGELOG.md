@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.1.8] - Production events of the shared contract
+
 - **Production events of the shared contract:** `contract_events.py` validates the finished cycles published as `ProductionEvent` with the contract of HYDRA-UMC-SDK (closed schema, a real date-time, `good` a boolean, a cycle time above 0 and at most one week) and turns them into the events of the OEE: `event_from_contract`, `split_contract_events` (the valid ones and the position and reason of each refused one) and `oee_from_contract_events` (one refused event refuses the whole report, nothing is dropped silently). The SDK is an optional extra, `pip install "hydra-umc-production-reports[contract]"`; without it the functions say so. The reports built from the data lake are not changed. 17 tests.
 
 ## [0.1.7] - Reports of windows that do not fit in one query, a cache of the aggregates, the fleet OEE and the universal README
