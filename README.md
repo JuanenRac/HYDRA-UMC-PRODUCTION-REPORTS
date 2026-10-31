@@ -18,14 +18,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Metrics-OEE%20%2F%20KPI%20%2F%20Cycle--Time-green.svg" alt="Metrics">
   <img src="https://img.shields.io/badge/Export-CSV%20%2F%20JSON-blue.svg" alt="Export">
-  <img src="https://img.shields.io/badge/Tests-133%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-145%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.7-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**Honesty check - what actually runs today:** the real OEE formula (`oee.py`), the real telemetry-gap availability calculation (`availability.py`), the real HTTP client to HYDRA-UMC-DATALAKE's own `GET /query` (`datalake_client.py`), the shift/day-boundary source of truth including a real night shift crossing midnight (`shift.py`), the byte-for-byte reproducible CSV export (`export.py`), and the real HTTP API exposing all of it (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`) are real and tested (133 tests, `pytest`). What is NOT implemented, despite being listed under "Key Features" below as if it already ran: there is no PDF export anywhere in this codebase (`export.py` only writes CSV and a self-contained HTML page), no scheduling of daily/weekly/monthly reports, and no email/delivery mechanism to "send" anything to a manager - every report is computed live, on request, exactly once per HTTP call. There is also no real `production_event` data source yet (nothing in this ecosystem writes that schema today, see ARCHITECTURE below), so OEE has never been exercised against a live HYDRA-UMC-JOB-DISPATCHER in production - only against a fake DATALAKE in tests and hand-constructed scenarios. See `CHANGELOG.md` for exactly what has shipped so far, and the ROADMAP below for what remains open.
+**Honesty check - what actually runs today:** the real OEE formula (`oee.py`), the real telemetry-gap availability calculation (`availability.py`), the real HTTP client to HYDRA-UMC-DATALAKE's own `GET /query` (`datalake_client.py`), the shift/day-boundary source of truth including a real night shift crossing midnight (`shift.py`), the byte-for-byte reproducible CSV export (`export.py`), and the real HTTP API exposing all of it (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`) are real and tested (145 tests, `pytest`). What is NOT implemented, despite being listed under "Key Features" below as if it already ran: there is no PDF export anywhere in this codebase (`export.py` only writes CSV and a self-contained HTML page), no scheduling of daily/weekly/monthly reports, and no email/delivery mechanism to "send" anything to a manager - every report is computed live, on request, exactly once per HTTP call. There is also no real `production_event` data source yet (nothing in this ecosystem writes that schema today, see ARCHITECTURE below), so OEE has never been exercised against a live HYDRA-UMC-JOB-DISPATCHER in production - only against a fake DATALAKE in tests and hand-constructed scenarios. See `CHANGELOG.md` for exactly what has shipped so far, and the ROADMAP below for what remains open.
 
 ---
 
@@ -39,7 +39,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Version | `0.1.7` |
 | Maturity | Functional |
-| Tests | 133 (`python -m pytest -q tests`) |
+| Tests | 145 (`python -m pytest -q tests`) |
 | Stack | Python / real OEE formula / http.server |
 | Target | The Raspberry Pi CM5 of a HYDRA-UMC cell |
 | On real hardware | Not yet: no run on real hardware is recorded for this version |
@@ -55,7 +55,7 @@ Each line is one part of this repository and the light says how far it is today.
 | Area | State | What it means here |
 |---|---|---|
 | Software | 🟡 | Works for its main purpose; the honesty check above lists what is still missing |
-| Tests | 🟢 | 133 automated tests, run on every change |
+| Tests | 🟢 | 145 automated tests, run on every change |
 | Real hardware | 🔴 | Not yet: no run on real hardware is recorded for this version |
 | Documentation | 🟢 | README in eight languages, checked against the manifest on every change |
 
@@ -140,7 +140,7 @@ curl http://127.0.0.1:8099/reports/oee?...
 
 ## 🧪 Testing
 
-133 automated tests run with `python -m pytest -q tests`. They need no hardware and nothing outside this machine.
+145 automated tests run with `python -m pytest -q tests`. They need no hardware and nothing outside this machine.
 
 The CI runs `HYDRA_UMC_CI=1 python tools/ci_validate.py`, which checks the manifest, the documents, the eight READMEs and the pictures.
 
