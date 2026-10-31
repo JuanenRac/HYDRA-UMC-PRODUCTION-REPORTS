@@ -18,14 +18,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Metrics-OEE%20%2F%20KPI%20%2F%20Cycle--Time-green.svg" alt="Metrics">
   <img src="https://img.shields.io/badge/Export-CSV%20%2F%20JSON-blue.svg" alt="Export">
-  <img src="https://img.shields.io/badge/Tests-145%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-161%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.7-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**Verifica di onestà - cosa funziona davvero oggi:** la vera formula OEE (`oee.py`), il vero calcolo di disponibilità basato sui buchi di telemetria (`availability.py`), il vero client HTTP verso il `GET /query` proprio di HYDRA-UMC-DATALAKE (`datalake_client.py`), l'unica fonte di verità per i confini turno/giorno, incluso un vero turno di notte che attraversa la mezzanotte (`shift.py`), l'esportazione CSV riproducibile byte per byte (`export.py`), e la vera API HTTP che espone tutto questo (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`) sono reali e testati (145 test, `pytest`). Ciò che NON è implementato, nonostante sia elencato in "Caratteristiche principali" più sotto come se già funzionasse: non esiste alcuna esportazione PDF da nessuna parte in questo codice (`export.py` scrive solo CSV e una pagina HTML autonoma), nessuna pianificazione di report giornalieri/settimanali/mensili, e nessun meccanismo di email/consegna per "inviare" qualcosa a un manager - ogni report viene calcolato dal vivo, su richiesta, esattamente una volta per chiamata HTTP. Inoltre non esiste ancora una vera fonte di dati `production_event` (nulla in questo ecosistema scrive quello schema oggi, vedi ARCHITETTURA più sotto), quindi l'OEE non è mai stato testato contro un vero HYDRA-UMC-JOB-DISPATCHER in produzione - solo contro un DATALAKE finto nei test e scenari costruiti a mano. Vedi `CHANGELOG.md` per ciò che è stato consegnato finora esattamente, e la TABELLA DI MARCIA più sotto per ciò che resta aperto.
+**Verifica di onestà - cosa funziona davvero oggi:** la vera formula OEE (`oee.py`), il vero calcolo di disponibilità basato sui buchi di telemetria (`availability.py`), il vero client HTTP verso il `GET /query` proprio di HYDRA-UMC-DATALAKE (`datalake_client.py`), l'unica fonte di verità per i confini turno/giorno, incluso un vero turno di notte che attraversa la mezzanotte (`shift.py`), l'esportazione CSV riproducibile byte per byte (`export.py`), e la vera API HTTP che espone tutto questo (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`) sono reali e testati (161 test, `pytest`). Ciò che NON è implementato, nonostante sia elencato in "Caratteristiche principali" più sotto come se già funzionasse: non esiste alcuna esportazione PDF da nessuna parte in questo codice (`export.py` scrive solo CSV e una pagina HTML autonoma), nessuna pianificazione di report giornalieri/settimanali/mensili, e nessun meccanismo di email/consegna per "inviare" qualcosa a un manager - ogni report viene calcolato dal vivo, su richiesta, esattamente una volta per chiamata HTTP. Inoltre non esiste ancora una vera fonte di dati `production_event` (nulla in questo ecosistema scrive quello schema oggi, vedi ARCHITETTURA più sotto), quindi l'OEE non è mai stato testato contro un vero HYDRA-UMC-JOB-DISPATCHER in produzione - solo contro un DATALAKE finto nei test e scenari costruiti a mano. Vedi `CHANGELOG.md` per ciò che è stato consegnato finora esattamente, e la TABELLA DI MARCIA più sotto per ciò che resta aperto.
 
 ---
 
@@ -39,7 +39,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Versione | `0.1.7` |
 | Maturità | Funzionale |
-| Test | 145 (`python -m pytest -q tests`) |
+| Test | 161 (`python -m pytest -q tests`) |
 | Tecnologia | Python / real OEE formula / http.server |
 | Destinazione | Il Raspberry Pi CM5 di una cella HYDRA-UMC |
 | Su hardware reale | Non ancora: per questa versione non risulta alcuna esecuzione su hardware reale |
@@ -55,7 +55,7 @@ Ogni riga è una parte di questo repository e il semaforo dice a che punto è og
 | Area | Stato | Cosa significa qui |
 |---|---|---|
 | Software | 🟡 | Funziona per il suo scopo principale; la verifica di onestà qui sopra elenca ciò che manca ancora |
-| Test | 🟢 | 145 test automatici, eseguiti a ogni modifica |
+| Test | 🟢 | 161 test automatici, eseguiti a ogni modifica |
 | Hardware reale | 🔴 | Non ancora: per questa versione non risulta alcuna esecuzione su hardware reale |
 | Documentazione | 🟢 | README in otto lingue, verificato rispetto al manifesto a ogni modifica |
 
@@ -76,6 +76,7 @@ Calcola l'**OEE (Overall Equipment Effectiveness)** dell'intero sciame, identifi
 * 🧱 **Sicuro da esporre e onesto sui propri input (v0):** l'API ascolta su `127.0.0.1` salvo diversa indicazione, e un altro indirizzo richiede un token bearer (`--token` / `PRODUCTION_REPORTS_TOKEN`) o `--allow-anonymous`; solo pochi report vengono costruiti contemporaneamente (`503` oltre); i numeri non finiti sono rifiutati con `400`; le finestre sono semiaperte `[start, end)`, quindi un campione sul confine conta in un solo report; `day=` e `shift=` ricavano la finestra dal piano dei turni; `format=html` su un'esportazione restituisce una pagina HTML autonoma; un report dice quando il suo input è incoerente (`inconsistent_input`) e quante letture ha scartato (`unmatched_count`, anche nelle esportazioni). *(implementato)*
 * 🔑 **Legge il data lake con il suo token:** quando HYDRA-UMC-DATALAKE chiede un token Bearer, il client invia `HYDRA_UMC_DATALAKE_READ_TOKEN`, altrimenti `HYDRA_UMC_DATALAKE_TOKEN` (ognuno anche come file, `..._FILE`, la cui prima riga è il token). Senza nessuno non invia alcuna intestazione, come prima, e un rifiuto (401) viene riportato come risposta del data lake stesso. *(implementato)*
 * 🏭 **OEE dell'intera flotta:** `GET /reports/oee/fleet` calcola l'OEE di più sorgenti su una stessa finestra, con il rapporto di ciascuna, le cifre combinate del gruppo (tutto il tempo di funzionamento sul tempo pianificato totale, tutti i pezzi buoni su tutti i pezzi) e il collo di bottiglia, cioè la sorgente con l'OEE più basso e il fattore che lo abbassa. Una sorgente senza dati è elencata con il suo motivo e non nasconde le altre.
+* ✅ **Eventi di produzione del contratto condiviso:** `contract_events.py` convalida i cicli terminati pubblicati come `ProductionEvent` con il contratto di HYDRA-UMC-SDK (schema chiuso, una vera data e ora, un tempo di ciclo maggiore di 0 e di al massimo una settimana) e ne calcola l'OEE; un evento rifiutato rifiuta l'intero rapporto. Richiede l'extra opzionale `[contract]`. *(implementato)*
 
 ## 🧩 Ruolo in HYDRA-UMC
 
@@ -140,7 +141,7 @@ curl http://127.0.0.1:8099/reports/oee?...
 
 ## 🧪 Test
 
-145 test automatici si eseguono con `python -m pytest -q tests`. Non richiedono hardware né nulla al di fuori di questa macchina.
+161 test automatici si eseguono con `python -m pytest -q tests`. Non richiedono hardware né nulla al di fuori di questa macchina.
 
 La CI esegue `HYDRA_UMC_CI=1 python tools/ci_validate.py`, che controlla il manifesto, i documenti, gli otto README e le immagini.
 

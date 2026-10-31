@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Production events of the shared contract:** `contract_events.py` validates the finished cycles published as `ProductionEvent` with the contract of HYDRA-UMC-SDK (closed schema, a real date-time, `good` a boolean, a cycle time above 0 and at most one week) and turns them into the events of the OEE: `event_from_contract`, `split_contract_events` (the valid ones and the position and reason of each refused one) and `oee_from_contract_events` (one refused event refuses the whole report, nothing is dropped silently). The SDK is an optional extra, `pip install "hydra-umc-production-reports[contract]"`; without it the functions say so. The reports built from the data lake are not changed. 17 tests.
+
 ## [0.1.7] - Reports of windows that do not fit in one query, a cache of the aggregates, the fleet OEE and the universal README
 
 - **Reports of windows that do not fit in one query.** A report asks the data lake how many points the window holds (`GET /aggregate`). A window above the cap of 200,000 points is no longer refused: the OEE is built from the totals the data lake adds up (`method` is `aggregate`; the sums are the same, the cycles are not paired and `unmatched_count` is the difference between the two counts) and the availability from the buckets that hold points (exact to one bucket, never longer than the real gap; refused when the resolution is coarser than the gap threshold). A data lake without `/aggregate` is read point by point as before.

@@ -18,7 +18,7 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Metrics-OEE%20%2F%20KPI%20%2F%20Cycle--Time-green.svg" alt="Metrics">
   <img src="https://img.shields.io/badge/Export-CSV%20%2F%20JSON-blue.svg" alt="Export">
-  <img src="https://img.shields.io/badge/Tests-145%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-161%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.7-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
@@ -39,7 +39,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | バージョン | `0.1.7` |
 | 成熟度 | 機能する |
-| テスト | 145 (`python -m pytest -q tests`) |
+| テスト | 161 (`python -m pytest -q tests`) |
 | 技術 | Python / real OEE formula / http.server |
 | 対象 | HYDRA-UMC セルの Raspberry Pi CM5 |
 | 実機での確認 | まだです：このバージョンについて実機での動作記録はありません |
@@ -55,7 +55,7 @@ GPL-3.0-or-later - see LICENSE
 | 領域 | 状態 | ここでの意味 |
 |---|---|---|
 | ソフトウェア | 🟡 | 主な目的では動作します。足りない点は上の正直さの確認に書かれています |
-| テスト | 🟢 | 自動テスト 145 件。変更のたびに実行されます |
+| テスト | 🟢 | 自動テスト 161 件。変更のたびに実行されます |
 | 実機 | 🔴 | まだです：このバージョンについて実機での動作記録はありません |
 | ドキュメント | 🟢 | 8 言語の README。変更のたびにマニフェストと照合されます |
 
@@ -80,6 +80,7 @@ GPL-3.0-or-later - see LICENSE
 * 🧱 **公開しても安全で、入力に誠実（v0）：** API は指定がなければ `127.0.0.1` で待ち受け、それ以外のアドレスには bearer トークン（`--token` / `PRODUCTION_REPORTS_TOKEN`）または `--allow-anonymous` が必要です。同時に作成されるレポートは少数に限られ（超えると `503`）、有限でない数値は `400` で拒否され、ウィンドウは半開区間 `[start, end)` なので境界上のサンプルは 1 つのレポートにだけ数えられます。`day=` と `shift=` はシフトスケジュールからウィンドウを導き、エクスポートの `format=html` は自己完結型の HTML ページを返します。レポートは入力が矛盾しているとき（`inconsistent_input`）と、破棄した読み取りの数（`unmatched_count`、エクスポートにも含まれる）を示します。*（実装済み）*
 * 🔑 **トークンを使ってデータレイクを読み取ります：** HYDRA-UMC-DATALAKE が Bearer トークンを求める場合、クライアントは `HYDRA_UMC_DATALAKE_READ_TOKEN`、なければ `HYDRA_UMC_DATALAKE_TOKEN` を送ります（どちらもファイル `..._FILE` として指定でき、1 行目がトークンです）。どちらもなければ従来どおりヘッダーを送らず、拒否（401）はデータレイク自身の応答として報告されます。*（実装済み）*
 * 🏭 **フリート全体の OEE:** `GET /reports/oee/fleet` は、複数のソースの OEE を一つの期間で計算し、各ソースのレポート、グループ全体の合算値(全稼働時間÷全計画時間、全良品数÷全生産数)、そしてボトルネック(OEE が最も低いソースと、それを押し下げている要因)を返します。データのないソースは理由付きで一覧に載り、他のソースを隠しません。
+* ✅ **共有契約の生産イベント:** `contract_events.py` は `ProductionEvent` として公開された完了サイクルを HYDRA-UMC-SDK の契約（閉じたスキーマ、実際の日時、0 より大きく最大 1 週間のサイクル時間）で検証し、それらから OEE を計算します。拒否されたイベントが 1 件でもあればレポート全体が拒否されます。オプションの追加 `[contract]` が必要です。*（実装済み）*
 
 ## 🧩 HYDRA-UMC での役割
 
@@ -144,7 +145,7 @@ curl http://127.0.0.1:8099/reports/oee?...
 
 ## 🧪 テスト
 
-`python -m pytest -q tests` で自動テスト 145 件を実行します。 ハードウェアも、このマシンの外にあるものも必要ありません。
+`python -m pytest -q tests` で自動テスト 161 件を実行します。 ハードウェアも、このマシンの外にあるものも必要ありません。
 
 CI は `HYDRA_UMC_CI=1 python tools/ci_validate.py` を実行し、マニフェスト、文書、8 つの README、図を検査します。
 
