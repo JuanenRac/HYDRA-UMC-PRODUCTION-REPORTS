@@ -86,7 +86,7 @@ def shift_index_for_timestamp(schedule: ShiftSchedule, timestamp_ms: int) -> tup
     shift index a real timestamp falls into. Only meaningful for a
     `shift_index` within `schedule.shifts_per_day` for that day - the
     schedule must evenly divide 24h (see `shifts_per_day`)."""
-    schedule.shifts_per_day  # raises ShiftError for an uneven schedule
+    _ = schedule.shifts_per_day  # raises ShiftError for an uneven schedule
     shift_length_ms = schedule.shift_length_minutes * 60_000
     first_start_ms = round(schedule.first_shift_start_hour * MS_PER_HOUR)
     local_ms = timestamp_ms + schedule.timezone_offset_minutes * 60_000

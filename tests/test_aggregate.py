@@ -238,5 +238,5 @@ def test_bucket_availability_edges_and_inputs():
     assert [(p.start_ms, p.end_ms) for p in report.downtime_periods] == [(3000, 10_000)]
     full = compute_availability_from_buckets(list(range(0, 10_000, 1000)), bucket_ms=1000, window_start_ms=0, window_end_ms=10_000, expected_interval_ms=1000.0)
     assert full.downtime_periods == [] and full.availability == 1.0
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017
         compute_availability_from_buckets([], bucket_ms=0, window_start_ms=0, window_end_ms=10, expected_interval_ms=1.0)

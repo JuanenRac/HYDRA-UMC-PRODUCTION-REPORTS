@@ -35,7 +35,7 @@ DEFAULT_MAX_CONCURRENT_REPORTS = 4
 
 
 def _json_default(o: object) -> object:
-    return asdict(o) if hasattr(o, "__dataclass_fields__") else str(o)
+    return asdict(o) if hasattr(o, "__dataclass_fields__") else str(o)  # type: ignore[call-overload]
 
 
 def _write_json(handler: BaseHTTPRequestHandler, status: int, payload: object) -> None:
@@ -240,7 +240,7 @@ class Handler(BaseHTTPRequestHandler):
             if "plannedTimeS" in params:
                 planned_time_s = _number(params, "plannedTimeS", positive=True)
             else:
-                planned_time_s = shift_planned_s  # a shift or a day: the whole of it is planned
+                planned_time_s = shift_planned_s  # type: ignore[assignment]  # a shift or a day: the whole of it is planned
             ideal_cycle_time_s = _number(params, "idealCycleTimeS", positive=True)
             report = oee_from_datalake(
                 self.server.client,

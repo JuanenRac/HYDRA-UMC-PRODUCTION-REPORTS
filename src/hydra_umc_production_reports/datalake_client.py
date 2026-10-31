@@ -211,7 +211,7 @@ class DatalakeClient:
                     timestamp=p["timestamp"],
                     value=p["value"],
                 )
-                for p in raw
+                for p in raw  # type: ignore[attr-defined]
             ]
         except (KeyError, TypeError) as e:
             raise DatalakeError(f"DATALAKE answered /query with a shape this client does not know: {e!r}") from e
@@ -267,7 +267,7 @@ class DatalakeClient:
             {"sourceId": source_id, "kind": kind, "field": field, "bucketMs": bucket_ms, "start": start, "before": before, "agg": agg},
         )
         try:
-            buckets = [Bucket(bucket_start=int(b["bucketStart"]), value=float(b["value"]), count=int(b["count"])) for b in raw]
+            buckets = [Bucket(bucket_start=int(b["bucketStart"]), value=float(b["value"]), count=int(b["count"])) for b in raw]  # type: ignore[attr-defined]
         except (KeyError, TypeError, ValueError) as e:
             raise DatalakeError(f"DATALAKE answered /aggregate with a shape this client does not know: {e!r}") from e
         if self._cache_entries and fingerprint is not None:

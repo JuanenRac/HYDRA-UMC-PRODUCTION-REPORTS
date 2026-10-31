@@ -25,3 +25,9 @@ hydra-umc-production-reports = "hydra_umc_production_reports.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff.lint]
+select = ["F", "E9", "B"]
+
+[tool.mypy]
+ignore_missing_imports = true

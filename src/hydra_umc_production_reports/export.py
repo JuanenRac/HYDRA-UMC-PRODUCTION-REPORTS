@@ -11,6 +11,8 @@ audit line 653-654), not just today's report fields with no provenance.
 """
 from __future__ import annotations
 
+from typing import Any
+
 import csv
 import io
 from dataclasses import asdict
@@ -82,12 +84,12 @@ def _render_csv(
     writer.writerow(["startMs", start_ms])
     writer.writerow(["endMs", end_ms])
     writer.writerow(["exportVersion", EXPORT_VERSION])
-    provenance = row.get("provenance")
+    provenance: Any = row.get("provenance")
     if provenance:
         writer.writerow(["pointsUsed", provenance["points_used"]])
         writer.writerow(["generatorVersion", provenance["generator_version"]])
     for key in sorted((filters or {}).keys()):
-        writer.writerow([f"filter:{key}", _csv_text(filters[key])])
+        writer.writerow([f"filter:{key}", _csv_text(filters[key])])  # type: ignore[index]
     writer.writerow([])
     writer.writerow(field_order)
     writer.writerow([_format_value(row[field]) for field in field_order])
@@ -226,7 +228,7 @@ def _render_html(
     field_rows = "".join(
         f"<tr><th>{_escape_html(field)}</th><td>{_escape_html(_format_value(row[field]))}</td></tr>" for field in field_order
     )
-    provenance = row.get("provenance")
+    provenance: Any = row.get("provenance")
     provenance_rows = ""
     if provenance:
         provenance_rows = (
