@@ -180,6 +180,18 @@ Same query parameters as `GET /reports/availability` above, rendered as a real, 
 
 ---
 
+## Production events of the shared contract (library)
+
+Not an HTTP route: `contract_events.py` is the entry point for finished cycles published as `ProductionEvent` (HYDRA-UMC-SDK; HYDRA-UMC-JOB-DISPATCHER emits them with `-production-events`). The SDK is an optional extra: `pip install "hydra-umc-production-reports[contract]"`; without it the functions say so.
+
+| Function | What it does |
+|---|---|
+| `event_from_contract(payload)` | validates one `ProductionEvent` (closed schema, a real date-time, `good` a boolean, a cycle time above 0 and at most one week) and returns the event of the OEE computation (`at_utc` in epoch milliseconds) |
+| `split_contract_events(payloads)` | returns the valid events and, for each refused one, its position and the reason |
+| `oee_from_contract_events(payloads, planned_time_s=, ideal_cycle_time_s=)` | builds an OEE report from the events; one refused event refuses the whole report, nothing is dropped silently |
+
+The reports built from the data lake (`/reports/oee` and the rest) are not changed.
+
 ## Aggregates of the data lake and their cache
 
 Before reading the points of a window, a report asks the data lake for how many it holds (`GET /aggregate`, one bucket over the window). A window that fits in one query is read point by point, as before. A window that does not is no longer refused: the OEE comes from the totals the data lake adds up (`method` is `aggregate`), and the availability from the buckets that hold points: a bucket is as wide as the expected interval (wider only when the window would need more than 100,000 buckets), a gap is a run of empty buckets longer than the gap threshold, and it is measured to the resolution of the bucket, never longer than the real gap. When even that resolution is coarser than the gap threshold, the report is refused and asks for a narrower window. A data lake without `/aggregate` is read point by point.
