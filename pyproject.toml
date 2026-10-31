@@ -15,8 +15,8 @@ authors = [
 keywords = ["hydra-umc", "oee", "kpi", "reporting", "production", "analytics"]
 
 [project.optional-dependencies]
-contract = ["hydra-umc-sdk @ git+https://github.com/JuanenRac/HYDRA-UMC-SDK.git@v0.4.2#subdirectory=clients/python"]
-dev = ["pytest>=8.0", "hydra-umc-sdk @ git+https://github.com/JuanenRac/HYDRA-UMC-SDK.git@v0.4.2#subdirectory=clients/python"]
+contract = ["hydra-umc-sdk @ git+https://github.com/JuanenRac/HYDRA-UMC-SDK.git@v0.4.3#subdirectory=clients/python"]
+dev = ["pytest>=8.0", "hydra-umc-sdk @ git+https://github.com/JuanenRac/HYDRA-UMC-SDK.git@v0.4.3#subdirectory=clients/python"]
 
 [project.urls]
 Homepage = "https://github.com/JuanenRac/HYDRA-UMC-PRODUCTION-REPORTS"
