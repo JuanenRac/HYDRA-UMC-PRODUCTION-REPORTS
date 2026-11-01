@@ -85,6 +85,17 @@ def main(argv: list[str] | None = None) -> int:
         help="seconds an aggregate of the data lake is reused without asking anything; after that the fingerprint of the series decides "
         "(default: the HYDRA_UMC_PRODUCTION_REPORTS_CACHE_TTL_SECONDS environment variable, else 30; 0 revalidates every time)",
     )
+    parser.add_argument(
+        "--job-dispatcher-url",
+        default=os.environ.get("PRODUCTION_REPORTS_JOB_DISPATCHER_URL", ""),
+        help="base URL of HYDRA-UMC-JOB-DISPATCHER: its robot registry says which cell each robot is in, for /reports/oee/fleet?groupBy=cell "
+             "(default: the PRODUCTION_REPORTS_JOB_DISPATCHER_URL environment variable; off when empty)",
+    )
+    parser.add_argument(
+        "--job-dispatcher-token-file",
+        default=os.environ.get("PRODUCTION_REPORTS_JOB_DISPATCHER_TOKEN_FILE", ""),
+        help="a file whose first line is the bearer token of the job dispatcher (never put the token on the command line)",
+    )
     parser.add_argument("--no-cache", action="store_true", help="do not keep the aggregates of the data lake")
     args = parser.parse_args(argv)
 
@@ -97,8 +108,21 @@ def main(argv: list[str] | None = None) -> int:
     print(ROLE)
 
     client = DatalakeClient(args.datalake_url, cache_ttl_seconds=args.cache_ttl_seconds, cache_entries=0 if args.no_cache else MAX_CACHE_ENTRIES)
+    dispatcher_token = ""
+    if args.job_dispatcher_token_file:
+        try:
+            with open(args.job_dispatcher_token_file, encoding="utf-8") as handle:
+                dispatcher_token = handle.readline().strip()
+        except OSError as exc:
+            print(f"[production-reports] fatal: --job-dispatcher-token-file: {exc.strerror or type(exc).__name__}", file=sys.stderr)
+            return 2
     server = ReportsServer(
-        (args.addr, args.port), client, token=args.token, max_concurrent_reports=max(1, args.max_concurrent_reports)
+        (args.addr, args.port),
+        client,
+        token=args.token,
+        max_concurrent_reports=max(1, args.max_concurrent_reports),
+        job_dispatcher_url=args.job_dispatcher_url or None,
+        job_dispatcher_token=dispatcher_token,
     )
     print(f"[production-reports] HTTP API listening on {args.addr}:{args.port} (datalake={args.datalake_url})")
     print("[production-reports] GET /reports/oee, GET /reports/availability, their /export, GET /stats, GET /health")

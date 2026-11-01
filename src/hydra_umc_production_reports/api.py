@@ -24,6 +24,7 @@ from .availability import AvailabilityError
 from .datalake_client import DatalakeClient, DatalakeError
 from .export import export_availability_csv, export_availability_html, export_oee_csv, export_oee_html
 from .oee import OEEError
+from .cells import CellMapError, group_by_cell, parse_cell_map, robot_cells
 from .reports import ReportError, availability_from_datalake, fleet_oee_from_datalake, oee_from_datalake
 from .shift import ShiftError, ShiftSchedule, day_window_ms, shift_window_ms
 
@@ -294,7 +295,30 @@ class Handler(BaseHTTPRequestHandler):
         except (ParamError, ReportError, OEEError, ValueError) as e:
             _write_error(self, 400, str(e))
             return
-        _write_json(self, 200, report)
+        payload = asdict(report)
+        if params.get("groupBy") == "cell":
+            try:
+                if "cells" in params:
+                    cell_of = parse_cell_map(params["cells"])
+                elif self.server.job_dispatcher_url:
+                    cell_of = robot_cells(self.server.job_dispatcher_url, self.server.job_dispatcher_token)
+                else:
+                    raise CellMapError("groupBy=cell needs the cells parameter (robot:cell,...) or a service started with --job-dispatcher-url")
+                by_cell = group_by_cell(report, cell_of, planned_time_s=planned_time_s, ideal_cycle_time_s=ideal_cycle_time_s)
+            except (CellMapError, ReportError) as e:
+                _write_error(self, 400, str(e))
+                return
+            payload["byCell"] = by_cell
+            # the cell with the lowest OEE and the factor that pulls it down (none with fewer than two cells that have data)
+            ranked = {name: cell["combined"] for name, cell in by_cell.items() if cell["combined"] is not None}
+            if len(ranked) >= 2:
+                name, worst = min(ranked.items(), key=lambda item: (item[1]["oee"], item[0]))
+                factors = {k: worst[k] for k in ("availability", "performance", "quality")}
+                weakest = min(factors, key=lambda f: (factors[f], f))
+                payload["cellBottleneck"] = {"cell": name, "oee": worst["oee"], "weakestFactor": weakest, "weakestValue": factors[weakest]}
+            else:
+                payload["cellBottleneck"] = None
+        _write_json(self, 200, payload)
 
     def _handle_oee_export(self, params: dict[str, str]) -> None:
         # The format is checked before anything is queried: a wrong one is a
@@ -379,8 +403,13 @@ class ReportsServer(ThreadingHTTPServer):
         *,
         token: str | None = None,
         max_concurrent_reports: int = DEFAULT_MAX_CONCURRENT_REPORTS,
+        job_dispatcher_url: str | None = None,
+        job_dispatcher_token: str = "",
     ) -> None:
         super().__init__(address, Handler)
+        # Where the cell of each robot is read from for groupBy=cell (off unless given).
+        self.job_dispatcher_url = job_dispatcher_url or None
+        self.job_dispatcher_token = job_dispatcher_token
         self.client = client
         self.token = token or None
         self.slots = threading.BoundedSemaphore(max_concurrent_reports)

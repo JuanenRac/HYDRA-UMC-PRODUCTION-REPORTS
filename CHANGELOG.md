@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **OEE of a fleet by cell.** `GET /reports/oee/fleet` with `groupBy=cell` adds `byCell` (the sources, the failed ones, the combined OEE and the bottleneck of each cell) and `cellBottleneck` (the cell with the lowest OEE and the factor that pulls it down). The cell of each robot comes from the `cells` parameter (`robot-1:cell-a,robot-2:cell-b`) or, when the service starts with `--job-dispatcher-url` (and `--job-dispatcher-token-file`), from the `location` of the robot registry of HYDRA-UMC-JOB-DISPATCHER. A source without a cell goes to `unassigned` and is never dropped. Without `groupBy` the answer is the one it always was. The bottleneck between cells by queue time still needs timestamps per job that the dispatcher does not keep.
 ## [0.1.8] - Production events of the shared contract
 
 - **Production events of the shared contract:** `contract_events.py` validates the finished cycles published as `ProductionEvent` with the contract of HYDRA-UMC-SDK (closed schema, a real date-time, `good` a boolean, a cycle time above 0 and at most one week) and turns them into the events of the OEE: `event_from_contract`, `split_contract_events` (the valid ones and the position and reason of each refused one) and `oee_from_contract_events` (one refused event refuses the whole report, nothing is dropped silently). The SDK is an optional extra, `pip install "hydra-umc-production-reports[contract]"`; without it the functions say so. The reports built from the data lake are not changed. 17 tests.

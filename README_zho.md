@@ -18,14 +18,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Metrics-OEE%20%2F%20KPI%20%2F%20Cycle--Time-green.svg" alt="Metrics">
   <img src="https://img.shields.io/badge/Export-CSV%20%2F%20JSON-blue.svg" alt="Export">
-  <img src="https://img.shields.io/badge/Tests-161%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-165%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.8-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**诚实核查——今天真正能跑起来的部分：** 真实的 OEE 公式（`oee.py`）、基于遥测数据缺口的真实可用性计算（`availability.py`）、指向 HYDRA-UMC-DATALAKE 自身 `GET /query` 的真实 HTTP 客户端（`datalake_client.py`）、班次/自然日边界的唯一真实基准——包括真实的跨越午夜的夜班（`shift.py`）、逐字节可复现的 CSV 导出（`export.py`），以及把这一切都暴露出来的真实 HTTP API（`api.py`：`GET /reports/oee`、`/reports/availability`、`/reports/{oee,availability}/export`、`/stats`）都是真实且经过测试的（161 个测试，`pytest`）。下面"关键特性"中列出但实际上尚未实现的部分：本代码库中完全没有任何 PDF 导出（`export.py` 只会写 CSV 和一个自包含的 HTML 页面）、没有每日/每周/每月报告的调度机制，也没有向管理者"发送"任何内容的邮件/投递机制——每份报告都是按需实时计算的，每次 HTTP 调用恰好计算一次。目前也还没有真实的 `production_event` 数据源（本生态系统中今天没有任何项目写入该模式，见下面的"架构"），因此 OEE 从未在生产环境中针对真实运行的 HYDRA-UMC-JOB-DISPATCHER 做过验证——只在测试中针对一个伪造的 DATALAKE 以及手工构造的场景验证过。已交付的具体内容见 `CHANGELOG.md`，尚未完成的部分见下面的路线图。
+**诚实核查——今天真正能跑起来的部分：** 真实的 OEE 公式（`oee.py`）、基于遥测数据缺口的真实可用性计算（`availability.py`）、指向 HYDRA-UMC-DATALAKE 自身 `GET /query` 的真实 HTTP 客户端（`datalake_client.py`）、班次/自然日边界的唯一真实基准——包括真实的跨越午夜的夜班（`shift.py`）、逐字节可复现的 CSV 导出（`export.py`），以及把这一切都暴露出来的真实 HTTP API（`api.py`：`GET /reports/oee`、`/reports/availability`、`/reports/{oee,availability}/export`、`/stats`）都是真实且经过测试的（165 个测试，`pytest`）。下面"关键特性"中列出但实际上尚未实现的部分：本代码库中完全没有任何 PDF 导出（`export.py` 只会写 CSV 和一个自包含的 HTML 页面）、没有每日/每周/每月报告的调度机制，也没有向管理者"发送"任何内容的邮件/投递机制——每份报告都是按需实时计算的，每次 HTTP 调用恰好计算一次。目前也还没有真实的 `production_event` 数据源（本生态系统中今天没有任何项目写入该模式，见下面的"架构"），因此 OEE 从未在生产环境中针对真实运行的 HYDRA-UMC-JOB-DISPATCHER 做过验证——只在测试中针对一个伪造的 DATALAKE 以及手工构造的场景验证过。已交付的具体内容见 `CHANGELOG.md`，尚未完成的部分见下面的路线图。
 
 ---
 
@@ -39,7 +39,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | 版本 | `0.1.8` |
 | 成熟度 | 可用 |
-| 测试 | 161 (`python -m pytest -q tests`) |
+| 测试 | 165 (`python -m pytest -q tests`) |
 | 技术栈 | Python / real OEE formula / http.server |
 | 目标 | HYDRA-UMC 工作单元的 Raspberry Pi CM5 |
 | 真实硬件 | 尚未：此版本没有在真实硬件上运行的记录 |
@@ -55,7 +55,7 @@ GPL-3.0-or-later - see LICENSE
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟡 | 主要用途可用；上面的诚实性检查列出了仍然缺少的内容 |
-| 测试 | 🟢 | 161 项自动测试，每次变更都会运行 |
+| 测试 | 🟢 | 165 项自动测试，每次变更都会运行 |
 | 真实硬件 | 🔴 | 尚未：此版本没有在真实硬件上运行的记录 |
 | 文档 | 🟢 | 八种语言的 README，每次变更都会与清单核对 |
 
@@ -79,6 +79,7 @@ GPL-3.0-or-later - see LICENSE
 * 🔑 **使用令牌读取数据湖：** 当 HYDRA-UMC-DATALAKE 要求 Bearer 令牌时，客户端发送 `HYDRA_UMC_DATALAKE_READ_TOKEN`，否则发送 `HYDRA_UMC_DATALAKE_TOKEN`（二者也可作为文件 `..._FILE` 给出，第一行即令牌）。都未设置时与以前一样不发送头部，被拒绝（401）会作为数据湖自身的应答报告。*（已实现）*
 * 🏭 **整个机群的 OEE:** `GET /reports/oee/fleet` 在同一时间窗口内计算多个来源的 OEE，给出每个来源的报告、整组的合并数字(全部运行时间除以全部计划时间、全部良品除以全部产品)以及瓶颈(OEE 最低的来源和拉低它的因素)。没有数据的来源会连同原因一起列出，不会遮住其他来源。
 * ✅ **共享合约的生产事件：** `contract_events.py` 用 HYDRA-UMC-SDK 的合约（封闭模式、真实的日期时间、大于 0 且最长一周的周期时间）校验以 `ProductionEvent` 发布的已完成周期，并据此计算 OEE；任何一个被拒绝的事件都会使整份报告被拒绝。需要可选附加项 `[contract]`。*（已实现）*
+* 🧱 **按单元的 OEE：** `GET /reports/oee/fleet?groupBy=cell` 把数据源归入单元（`cells` 参数，或在使用 `--job-dispatcher-url` 时取 HYDRA-UMC-JOB-DISPATCHER 机器人登记簿的 `location`），给出每个单元的综合 OEE 与瓶颈，并指出 OEE 最低的单元；没有单元的数据源归入 `unassigned`，不会被丢弃。
 
 ## 🧩 在 HYDRA-UMC 中的角色
 
@@ -130,6 +131,8 @@ flowchart LR
 | `--datalake-url` | `http://localhost:8095` | 每个请求所查询的数据湖 |
 | `--token` / `PRODUCTION_REPORTS_TOKEN` | 无 | 除 `GET /health` 外所有路由都需要的 Bearer 令牌 |
 | `--max-concurrent-reports` | `4` | 同时生成的报告数；超过后请求得到 503 |
+| `--job-dispatcher-url` / `PRODUCTION_REPORTS_JOB_DISPATCHER_URL` | none | 其机器人登记簿为 `groupBy=cell` 提供每个机器人所在单元的作业调度器 |
+| `--job-dispatcher-token-file` | none | 第一行为作业调度器承载令牌的文件 |
 
 ## 🚀 快速开始
 
@@ -143,7 +146,7 @@ curl http://127.0.0.1:8099/reports/oee?...
 
 ## 🧪 测试
 
-运行 `python -m pytest -q tests` 会执行 161 个自动测试。 不需要硬件，也不需要这台机器以外的任何东西。
+运行 `python -m pytest -q tests` 会执行 165 个自动测试。 不需要硬件，也不需要这台机器以外的任何东西。
 
 CI 运行 `HYDRA_UMC_CI=1 python tools/ci_validate.py`，检查清单、文档、八个 README 和图片。
 
@@ -197,6 +200,7 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 │   ├── oee.py                          真实的 OEE 公式（可用性 x 性能 x 质量）
 │   ├── availability.py                 基于遥测间隔的真实停机计算
 │   ├── reports.py                      编排层：DatalakeClient -> oee.py / availability.py
+│   ├── cells.py                        按单元分组的机群 OEE
 │   ├── shift.py                        真实的班次/日边界计算（真实基准）
 │   ├── export.py                       真实的、逐字节可复现的 CSV 导出
 │   ├── api.py                          真实的 HTTP API（GET /reports/oee、/reports/availability、/stats、/export）

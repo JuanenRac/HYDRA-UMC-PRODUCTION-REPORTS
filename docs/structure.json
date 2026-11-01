@@ -134,6 +134,29 @@
           }
         },
         {
+          "name": "cells.py",
+          "desc": {
+            "en": "OEE of a fleet grouped by cell",
+            "es": "OEE de una flota agrupado por celda",
+            "de": "OEE einer Flotte, nach Zelle gruppiert",
+            "fr": "OEE d'une flotte regroupé par cellule",
+            "it": "OEE di una flotta raggruppato per cella",
+            "ja": "セル別にまとめた艦隊の OEE",
+            "zh": "按单元分组的机群 OEE",
+            "pt": "OEE de uma frota agrupado por célula"
+          },
+          "tree_desc": {
+            "en": "OEE of a fleet grouped by cell",
+            "es": "OEE de una flota agrupado por celda",
+            "de": "OEE einer Flotte, nach Zelle gruppiert",
+            "fr": "OEE d'une flotte regroupé par cellule",
+            "it": "OEE di una flotta raggruppato per cella",
+            "ja": "セル別にまとめた艦隊の OEE",
+            "zh": "按单元分组的机群 OEE",
+            "pt": "OEE de uma frota agrupado por célula"
+          }
+        },
+        {
           "name": "shift.py",
           "desc": {
             "en": "Real shift/day-boundary computation",
