@@ -20,6 +20,8 @@ from datetime import date
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
+from . import __version__
+from .service_metrics import MetricsHandlerMixin
 from .availability import AvailabilityError
 from .datalake_client import DatalakeClient, DatalakeError
 from .export import export_availability_csv, export_availability_html, export_oee_csv, export_oee_html
@@ -151,8 +153,10 @@ def _window(params: dict[str, str]) -> tuple[int, int, float | None]:
     return start_ms, end_ms, None
 
 
-class Handler(BaseHTTPRequestHandler):
+class Handler(MetricsHandlerMixin, BaseHTTPRequestHandler):
     server: "ReportsServer"
+    metrics_service = "hydra-umc-production-reports"
+    metrics_version = __version__
 
     # Seconds a client may stay silent on its connection before the server
     # drops it, so a client that connects and sends nothing cannot hold a
@@ -172,6 +176,8 @@ class Handler(BaseHTTPRequestHandler):
         return hmac.compare_digest(header[len("Bearer "):].strip().encode("utf-8"), token.encode("utf-8"))
 
     def do_GET(self) -> None:  # noqa: N802
+        if self.serve_metrics(authorized=self._authorized()):
+            return
         path = urlparse(self.path).path
         if path == "/health":
             # liveness, open so a watchdog can probe it without a credential

@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **`GET /metrics` in the text format of Prometheus:** the version, the uptime, the responses by class of status (2xx to 5xx) and the health, the aggregate of the checks of the service; only numbers about the service, never a path, an address, a token or a body. Behind the bearer token when the service has one. The code is the canonical `service_metrics.py` of HYDRA-UMC-SDK, copied byte for byte. 4 tests against a real server.
+
 - **OEE of a fleet by cell.** `GET /reports/oee/fleet` with `groupBy=cell` adds `byCell` (the sources, the failed ones, the combined OEE and the bottleneck of each cell) and `cellBottleneck` (the cell with the lowest OEE and the factor that pulls it down). The cell of each robot comes from the `cells` parameter (`robot-1:cell-a,robot-2:cell-b`) or, when the service starts with `--job-dispatcher-url` (and `--job-dispatcher-token-file`), from the `location` of the robot registry of HYDRA-UMC-JOB-DISPATCHER. A source without a cell goes to `unassigned` and is never dropped. Without `groupBy` the answer is the one it always was. The bottleneck between cells by queue time still needs timestamps per job that the dispatcher does not keep.
 ## [0.1.8] - Production events of the shared contract
 
