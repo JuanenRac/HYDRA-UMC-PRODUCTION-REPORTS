@@ -13,6 +13,7 @@
   "deployment_target": "cm5",
   "maturity": "functional",
   "evidence": "none",
+  "hardware_bound": false,
   "family": "Data & Analytics",
   "parent": "HYDRA-UMC-DATALAKE",
   "build": "python tools/build_test.py",
