@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.1.9] - Scheduled daily and weekly reports with systemd timers and a checked manifest, and availability from explicit up and down events
+
 - **Daily and weekly reports written to disk by a systemd timer.** `python -m hydra_umc_production_reports.scheduled --config FILE --period daily|weekly` builds, for every source in a JSON configuration file, the OEE and the availability of the last complete day or week and writes them as CSV and/or HTML into `output_dir/<period>/<day>/`, with a `manifest.json` that records the sha256 of every file, the formula versions, the input fingerprints and the provenance of each report; `--verify FOLDER` checks the files against it. The job is off until `enabled` is true in the file, one failing source does not stop the others (exit code 1, the failure is in the manifest), and every tunable value lives in the file. Example units (`systemd/hydra-umc-production-reports-{daily,weekly}.{service,timer}.example`) and an example configuration are included; nothing installs them. 11 tests.
 
 - **Availability from explicit up/down events.** `GET /reports/availability?mode=state` (and `mode: state` in the scheduled job) reads a series whose value is 1 (up) or 0 (down), written when the state changes, instead of inferring downtime from gaps; the last event before the window gives the state when it opens (`lookbackMs`, default 7 days). Time with no event to say what the state was is reported as `unknown_ms` and counts as downtime, so the figure is never better than what the events prove. Without `mode` the answer is the one it always was.
