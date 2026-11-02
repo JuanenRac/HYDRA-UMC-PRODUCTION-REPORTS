@@ -1,0 +1,32 @@
+# =============================================================================
+# HYDRA-UMC-PRODUCTION-REPORTS - example systemd unit: the weekly reports written to disk
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+# =============================================================================
+# An example, not installed by anything here. Copy it (without .example) to /etc/systemd/system/, copy
+# scheduled-reports.example.json to /etc/hydra-umc/scheduled-reports.json, set "enabled": true there, then
+#   systemctl enable --now hydra-umc-production-reports-weekly.timer
+# While "enabled" is false the job writes nothing. The output folder is created by StateDirectory.
+[Unit]
+Description=HYDRA-UMC-PRODUCTION-REPORTS weekly reports to disk
+After=network-online.target hydra-umc-datalake.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=hydra-umc-production-reports
+Group=hydra-umc-production-reports
+WorkingDirectory=/opt/hydra-umc/production-reports
+Environment=PYTHONPATH=/opt/hydra-umc/production-reports/src
+EnvironmentFile=-/etc/hydra-umc/production-reports.env
+StateDirectory=hydra-umc/production-reports
+ExecStart=/usr/bin/python3 -m hydra_umc_production_reports.scheduled --config /etc/hydra-umc/scheduled-reports.json --period weekly
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryAccounting=yes
+MemoryHigh=256M
+MemoryMax=384M

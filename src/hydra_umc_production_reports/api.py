@@ -27,7 +27,7 @@ from .datalake_client import DatalakeClient, DatalakeError
 from .export import export_availability_csv, export_availability_html, export_oee_csv, export_oee_html
 from .oee import OEEError
 from .cells import CellMapError, group_by_cell, parse_cell_map, robot_cells
-from .reports import ReportError, availability_from_datalake, fleet_oee_from_datalake, oee_from_datalake
+from .reports import DEFAULT_STATE_LOOKBACK_MS, ReportError, availability_from_datalake, availability_from_states_datalake, fleet_oee_from_datalake, oee_from_datalake
 from .shift import ShiftError, ShiftSchedule, day_window_ms, shift_window_ms
 
 # How many reports may be built at the same time. Each one can bring up to
@@ -350,13 +350,24 @@ class Handler(MetricsHandlerMixin, BaseHTTPRequestHandler):
         availability routes - see _build_oee_report for the same
         reasoning. Writes the real error response itself and returns
         None on any failure. Returns (report, start_ms, end_ms)."""
-        required = {"sourceId", "kind", "field", "expectedIntervalMs"}
+        mode = params.get("mode", "gaps")
+        if mode not in ("gaps", "state"):
+            _write_error(self, 400, f"unknown mode: {mode!r} (expected 'gaps' or 'state')")
+            return None
+        required = {"sourceId", "kind", "field"} | ({"expectedIntervalMs"} if mode == "gaps" else set())
         missing = required - params.keys()
         if missing:
             _write_error(self, 400, f"missing required params: {sorted(missing)}")
             return None
         try:
             start_ms, end_ms, _ = _window(params)
+            if mode == "state":
+                lookback = int(_number(params, "lookbackMs", minimum=0)) if "lookbackMs" in params else DEFAULT_STATE_LOOKBACK_MS
+                report = availability_from_states_datalake(
+                    self.server.client, source_id=params["sourceId"], kind=params["kind"], field=params["field"],
+                    start_ms=start_ms, end_ms=end_ms, lookback_ms=lookback,
+                )
+                return report, start_ms, end_ms
             gap_factor = _number(params, "gapFactor", minimum=1) if "gapFactor" in params else 3.0
             report = availability_from_datalake(
                 self.server.client,

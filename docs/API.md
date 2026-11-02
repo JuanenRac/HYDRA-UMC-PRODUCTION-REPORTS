@@ -146,8 +146,10 @@ Computes an availability report by finding gaps between consecutive sample times
 | `kind` | yes | string | Sample kind to query in DATALAKE. |
 | `field` | yes | string | Field name to query in DATALAKE. |
 | `start` / `end` | yes (or `day`) | integer | Window `[start, end)`, epoch ms; `day` (and `shift`) work as for `/reports/oee`. |
-| `expectedIntervalMs` | yes | float, finite and > 0 | Expected time between consecutive samples when the machine is healthy. |
+| `mode` | no | `gaps` or `state` | `gaps` (default) infers downtime from gaps; `state` reads explicit up/down events (see below). |
+| `expectedIntervalMs` | yes in `gaps` mode | float, finite and > 0 | Expected time between consecutive samples when the machine is healthy. |
 | `gapFactor` | no | float, finite and >= 1 | A gap longer than `expectedIntervalMs * gapFactor` counts as downtime (default `3.0`). |
+| `lookbackMs` | no (`state` mode) | integer >= 0 | How far before the window the last event is looked for (default 7 days). |
 
 **Response** - `200`:
 
@@ -169,6 +171,8 @@ Computes an availability report by finding gaps between consecutive sample times
 - `downtime_ms` - sum of every downtime period's duration.
 - `availability` = 1 - (downtime_ms / window duration).
 - `formula_version` / `input_fingerprint` - same real traceability as `/reports/oee` above, over the exact (window-filtered) sample timestamps used.
+
+**Availability by explicit state (`mode=state`).** `kind` and `field` name a series whose value is `1` (up) or `0` (down), written when the state changes (by a node supervisor or from dispatcher heartbeats); any other value is refused with `400`. The last event before the window gives the state when it opens. Time with no event to say what the state was (no event before the window) is reported as `unknown_ms` and counted as downtime, so the figure is never better than what the events prove. `method` is `state`.
 
 **Errors** - same pattern as `/reports/oee` above (`400` for missing/invalid params, `502` if DATALAKE is unreachable).
 

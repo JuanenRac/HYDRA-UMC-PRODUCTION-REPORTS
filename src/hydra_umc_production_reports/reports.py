@@ -17,7 +17,12 @@ import math
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
 
-from .availability import AvailabilityReport, compute_availability, compute_availability_from_buckets
+from .availability import (
+    AvailabilityReport,
+    compute_availability,
+    compute_availability_from_buckets,
+    compute_availability_from_states,
+)
 from .datalake_client import DatalakeClient, DatalakeError, Point
 from . import __version__
 from .oee import OEEError, OEEReport, ProductionEvent, compute_oee, compute_oee_from_totals
@@ -271,6 +276,47 @@ def availability_from_datalake(
             window_end_ms=end_ms,
             points_used=len(points),
             generator_version=__version__,
+        ),
+    )
+
+
+# How far before the window the last up/down event is looked for: the state in force when the window opens.
+DEFAULT_STATE_LOOKBACK_MS = 7 * 24 * 3600 * 1000
+
+
+def availability_from_states_datalake(
+    client: DatalakeClient,
+    *,
+    source_id: str,
+    kind: str,
+    field: str,
+    start_ms: int,
+    end_ms: int,
+    lookback_ms: int = DEFAULT_STATE_LOOKBACK_MS,
+) -> AvailabilityReport:
+    """Availability from explicit up/down events kept in the data lake (a series whose value is 1 for up and 0 for down,
+    written by a node supervisor or from dispatcher heartbeats), not inferred from gaps. The last event before the window,
+    looked for `lookback_ms` back, gives the state when the window opens; without one that time is `unknown_ms` and counts as downtime."""
+    _check_window(start_ms, end_ms)
+    if lookback_ms < 0:
+        raise ReportError("lookback_ms must not be negative")
+    points = _query_all_or_raise(
+        client, source_id=source_id, kind=kind, field=field, start_ms=max(0, start_ms - lookback_ms), end_ms=end_ms
+    )
+    events: list[tuple[int, bool]] = []
+    for p in points:
+        if p.value not in (0.0, 1.0):
+            raise ReportError(f"a state event must be 1 (up) or 0 (down); got {p.value!r} at {p.timestamp}")
+        events.append((p.timestamp, p.value == 1.0))
+    before = [e for e in sorted(events, key=lambda e: e[0]) if e[0] < start_ms]
+    report = compute_availability_from_states(
+        events, window_start_ms=start_ms, window_end_ms=end_ms, initial_up=before[-1][1] if before else None
+    )
+    return replace(
+        report,
+        provenance=Provenance(
+            source_id=source_id, kind=kind, fields=(field,), window_start_ms=start_ms, window_end_ms=end_ms,
+            points_used=len(points), generator_version=__version__,
         ),
     )
 

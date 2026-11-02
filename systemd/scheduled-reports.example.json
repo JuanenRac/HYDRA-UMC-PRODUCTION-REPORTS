@@ -1,0 +1,21 @@
+{
+  "enabled": false,
+  "datalake_url": "http://127.0.0.1:8095",
+  "output_dir": "/var/lib/hydra-umc/production-reports",
+  "formats": ["csv", "html"],
+  "timezone_offset_minutes": 60,
+  "planned_time_s_per_day": 28800,
+  "ideal_cycle_time_s": 10,
+  "sources": [
+    {
+      "id": "robot-1",
+      "availability": {"mode": "state", "kind": "node_state", "field": "up", "lookback_ms": 604800000}
+    },
+    {
+      "id": "robot-2",
+      "planned_time_s_per_day": 57600,
+      "ideal_cycle_time_s": 8,
+      "availability": {"mode": "gaps", "kind": "motor_temp", "field": "value", "expected_interval_ms": 1000, "gap_factor": 3}
+    }
+  ]
+}

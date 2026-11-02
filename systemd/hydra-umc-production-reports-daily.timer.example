@@ -1,0 +1,16 @@
+# =============================================================================
+# HYDRA-UMC-PRODUCTION-REPORTS - example systemd timer for the daily reports
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+# =============================================================================
+# An example, not installed by anything here. Persistent=true runs a missed run at the next boot.
+[Unit]
+Description=HYDRA-UMC-PRODUCTION-REPORTS daily reports timer
+
+[Timer]
+OnCalendar=*-*-* 00:30:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

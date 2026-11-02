@@ -18,14 +18,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Metrics-OEE%20%2F%20KPI%20%2F%20Cycle--Time-green.svg" alt="Metrics">
   <img src="https://img.shields.io/badge/Export-CSV%20%2F%20JSON-blue.svg" alt="Export">
-  <img src="https://img.shields.io/badge/Tests-165%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-180%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.8-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**Ehrlichkeitscheck - was heute wirklich läuft:** die echte GAE-Formel (`oee.py`), die echte Verfügbarkeitsberechnung aus Telemetrielücken (`availability.py`), der echte HTTP-Client zum eigenen `GET /query` von HYDRA-UMC-DATALAKE (`datalake_client.py`), die einzige Quelle der Wahrheit für Schicht-/Tagesgrenzen einschließlich einer echten Nachtschicht über Mitternacht hinaus (`shift.py`), der byteidentisch reproduzierbare CSV-Export (`export.py`) und die echte HTTP-API, die all das bereitstellt (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`), sind real und getestet (165 Tests, `pytest`). Was NICHT implementiert ist, obwohl es weiter unten unter "Hauptmerkmale" so aufgeführt ist, als liefe es bereits: Es gibt nirgendwo in diesem Code einen PDF-Export (`export.py` schreibt ausschließlich CSV und eine eigenständige HTML-Seite), keine Planung von täglichen/wöchentlichen/monatlichen Berichten und keinen E-Mail-/Zustellmechanismus, um irgendetwas an einen Manager zu "senden" - jeder Bericht wird live, auf Anfrage, genau einmal pro HTTP-Aufruf berechnet. Es gibt auch noch keine echte `production_event`-Datenquelle (nichts in diesem Ökosystem schreibt dieses Schema heute, siehe ARCHITEKTUR weiter unten), sodass die GAE noch nie gegen einen echten, produktiven HYDRA-UMC-JOB-DISPATCHER getestet wurde - nur gegen ein simuliertes DATALAKE in Tests und von Hand konstruierte Szenarien. Siehe `CHANGELOG.md` für genau das, was bisher ausgeliefert wurde, und die ROADMAP weiter unten für das, was noch offen ist.
+**Ehrlichkeitscheck - was heute wirklich läuft:** die echte GAE-Formel (`oee.py`), die echte Verfügbarkeitsberechnung aus Telemetrielücken (`availability.py`), der echte HTTP-Client zum eigenen `GET /query` von HYDRA-UMC-DATALAKE (`datalake_client.py`), die einzige Quelle der Wahrheit für Schicht-/Tagesgrenzen einschließlich einer echten Nachtschicht über Mitternacht hinaus (`shift.py`), der byteidentisch reproduzierbare CSV-Export (`export.py`) und die echte HTTP-API, die all das bereitstellt (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`), sind real und getestet (180 Tests, `pytest`). Was NICHT implementiert ist, obwohl es weiter unten unter "Hauptmerkmale" so aufgeführt ist, als liefe es bereits: Es gibt nirgendwo in diesem Code einen PDF-Export (`export.py` schreibt ausschließlich CSV und eine eigenständige HTML-Seite), keine Planung von täglichen/wöchentlichen/monatlichen Berichten und keinen E-Mail-/Zustellmechanismus, um irgendetwas an einen Manager zu "senden" - jeder Bericht wird live, auf Anfrage, genau einmal pro HTTP-Aufruf berechnet. Es gibt auch noch keine echte `production_event`-Datenquelle (nichts in diesem Ökosystem schreibt dieses Schema heute, siehe ARCHITEKTUR weiter unten), sodass die GAE noch nie gegen einen echten, produktiven HYDRA-UMC-JOB-DISPATCHER getestet wurde - nur gegen ein simuliertes DATALAKE in Tests und von Hand konstruierte Szenarien. Siehe `CHANGELOG.md` für genau das, was bisher ausgeliefert wurde, und die ROADMAP weiter unten für das, was noch offen ist.
 
 ---
 
@@ -39,7 +39,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Version | `0.1.8` |
 | Reifegrad | Funktionsfähig |
-| Tests | 165 (`python -m pytest -q tests`) |
+| Tests | 180 (`python -m pytest -q tests`) |
 | Technik | Python / real OEE formula / http.server |
 | Ziel | Der Raspberry Pi CM5 einer HYDRA-UMC-Zelle |
 | Auf echter Hardware | Nicht zutreffend: nichts hiervon läuft auf Hardware |
@@ -55,7 +55,7 @@ Jede Zeile ist ein Teil dieses Repositorys, und die Ampel sagt, wie weit er heut
 | Bereich | Stand | Was das hier bedeutet |
 |---|---|---|
 | Software | 🟡 | Funktioniert für seinen Hauptzweck; die Ehrlichkeitsprüfung oben nennt, was noch fehlt |
-| Tests | 🟢 | 165 automatische Tests, bei jeder Änderung ausgeführt |
+| Tests | 🟢 | 180 automatische Tests, bei jeder Änderung ausgeführt |
 | Echte Hardware | 🟢 | Nicht zutreffend: nichts hiervon läuft auf Hardware |
 | Schnittstelle und Protokolle | 🟡 | Die angebotenen Routen oder Nachrichten sind dokumentiert und mit einem Client getestet; noch nicht jeder Client hat sie benutzt |
 | Integration | 🟡 | Es läuft zusammen mit den anderen Diensten auf dem CM5-Prüfstand, und seine Nachrichten folgen den gemeinsamen Verträgen des SDK |
@@ -73,7 +73,7 @@ Es berechnet die **GAE (Gesamtanlageneffektivität / OEE)** des gesamten Schwarm
 
 ### Hauptmerkmale:
 * 📈 **GAE-Berechnung (implementiert):** Verfügbarkeit x Leistung x Qualität, live aus DATALAKE-Telemetrie bei jeder Anfrage über `GET /reports/oee` berechnet.
-* 📤 **CSV/JSON-Berichte auf Abruf (implementiert):** `GET /reports/{oee,availability}` liefert JSON; `GET /reports/{oee,availability}/export` liefert byteidentisch reproduzierbares CSV. Es gibt keinen PDF-Export, keine geplante tägliche/wöchentliche/monatliche Erzeugung und keinen E-Mail-/Zustellmechanismus - siehe ROADMAP weiter unten.
+* 📤 **CSV/JSON-Berichte auf Abruf (implementiert):** `GET /reports/{oee,availability}` liefert JSON; `GET /reports/{oee,availability}/export` liefert byteidentisch reproduzierbares CSV. Tägliche und wöchentliche Berichte können außerdem von einem systemd-Timer auf die Platte geschrieben werden (aus, bis es in einer Konfigurationsdatei aktiviert wird), mit einem Manifest aus sha256-Summen; es gibt keinen PDF-Export, keine monatliche Erzeugung und keinen E-Mail-/Zustellmechanismus - siehe ROADMAP weiter unten.
 * 🛠️ **Engpassanalyse (geplant):** die Identifizierung, welche Roboter oder Werkzeuge Verzögerungen in der Missionswarteschlange verursachen, benötigt die echte `production_event`-Datenquelle weiter unten - noch nicht implementiert.
 * 🌡️ **Qualitätsrückverfolgbarkeit (geplant):** die Verknüpfung eines Endprodukts mit seinen spezifischen Montageprotokollen (thermisch, visuell, mechanisch) ist zukünftige Arbeit, sobald mehr als ein Projekt Produktionsdaten in DATALAKE schreibt.
 * 🕐 **Schicht-/Tagesgrenzen:** `shift.py` gibt jedem Bericht eine einzige, echte Quelle der Wahrheit dafür, wo eine Schicht oder ein Kalendertag beginnt/endet - einschließlich einer echten Nachtschicht, die über Mitternacht hinausgeht. *(implementiert)*
@@ -137,6 +137,8 @@ flowchart LR
 | `--max-concurrent-reports` | `4` | gleichzeitig erstellte Berichte; darüber hinaus erhält eine Anfrage 503 |
 | `--job-dispatcher-url` / `PRODUCTION_REPORTS_JOB_DISPATCHER_URL` | none | Job-Dispatcher, dessen Roboterregister für `groupBy=cell` die Zelle jedes Roboters liefert |
 | `--job-dispatcher-token-file` | none | Datei, deren erste Zeile das Bearer-Token des Job-Dispatchers ist |
+| `python -m hydra_umc_production_reports.scheduled --config FILE --period daily\|weekly` | `enabled: false` | schreibt OEE und Verfügbarkeit des letzten vollständigen Tages oder der letzten Woche als CSV/HTML plus ein Manifest mit dem sha256 jeder Datei; wird von den systemd-Beispiel-Timern gestartet; es wird nichts geschrieben, bis `enabled` in der Datei true ist, und jeder einstellbare Wert (Quellen, geplante Zeit, Formate, Zeitzone) steht in dieser Datei |
+| `GET /reports/availability?mode=state` | `mode=gaps` | Verfügbarkeit aus expliziten Up/Down-Ereignissen (1 = up, 0 = down) statt aus Lücken in einem Telemetriestrom; `lookbackMs` legt fest, wie weit zurück der Zustand am Fensteranfang gesucht wird; Zeit ohne Ereignis, das den Zustand belegt, zählt als Ausfall und wird als `unknown_ms` ausgewiesen |
 
 ## 🚀 Schnellstart
 
@@ -150,7 +152,7 @@ curl http://127.0.0.1:8099/reports/oee?...
 
 ## 🧪 Tests
 
-165 automatische Tests laufen mit `python -m pytest -q tests`. Sie brauchen weder Hardware noch etwas außerhalb dieses Rechners.
+180 automatische Tests laufen mit `python -m pytest -q tests`. Sie brauchen weder Hardware noch etwas außerhalb dieses Rechners.
 
 Die CI führt `HYDRA_UMC_CI=1 python tools/ci_validate.py` aus; das prüft das Manifest, die Dokumente, die acht READMEs und die Bilder.
 
@@ -233,7 +235,7 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 
 * **Erledigt (v0):** echte OEE- und Verfügbarkeitsberechnung, echte HTTP-Integration mit HYDRA-UMC-DATALAKE, echte HTTP-API, echte Schicht-/Tagesgrenzen, versionierte Formeln + Input-Fingerabdruck, byteidentisch reproduzierbarer CSV-Export.
 * **Als Nächstes:** eine echte `production_event`-Datenquelle - der Orchestrator (oder der Roboter) soll Zyklusabschlüsse in diesem Schema melden.
-* **Als Nächstes:** persistente/geplante Berichte (heute wird jeder Bericht live, auf Anfrage berechnet).
+* **Als Nächstes:** Monatsberichte und Zustellung der geplanten Berichte (tägliche und wöchentliche schreibt ein Timer auf die Platte; die übrigen werden live, auf Anfrage berechnet).
 * **Später:** PDF-Export, ein E-Mail-/Zustellmechanismus, und ein Dashboard.
 * KI-gestützte ROI-Analyse für Werkzeug-Upgrades, verknüpft mit denselben OEE-Daten, sobald historische Trends gespeichert werden.
 

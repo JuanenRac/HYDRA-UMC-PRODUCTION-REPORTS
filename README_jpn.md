@@ -18,7 +18,7 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Metrics-OEE%20%2F%20KPI%20%2F%20Cycle--Time-green.svg" alt="Metrics">
   <img src="https://img.shields.io/badge/Export-CSV%20%2F%20JSON-blue.svg" alt="Export">
-  <img src="https://img.shields.io/badge/Tests-165%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-180%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.8-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
@@ -39,7 +39,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | バージョン | `0.1.8` |
 | 成熟度 | 機能する |
-| テスト | 165 (`python -m pytest -q tests`) |
+| テスト | 180 (`python -m pytest -q tests`) |
 | 技術 | Python / real OEE formula / http.server |
 | 対象 | HYDRA-UMC セルの Raspberry Pi CM5 |
 | 実機での確認 | 対象外：ここにあるものはハードウェア上では動きません |
@@ -55,7 +55,7 @@ GPL-3.0-or-later - see LICENSE
 | 領域 | 状態 | ここでの意味 |
 |---|---|---|
 | ソフトウェア | 🟡 | 主な目的では動作します。足りない点は上の正直さの確認に書かれています |
-| テスト | 🟢 | 自動テスト 165 件。変更のたびに実行されます |
+| テスト | 🟢 | 自動テスト 180 件。変更のたびに実行されます |
 | 実機 | 🟢 | 対象外：ここにあるものはハードウェア上では動きません |
 | インターフェースとプロトコル | 🟡 | 提供するルートやメッセージは文書化され、クライアントで試験済みです。すべてのクライアントがまだ使ったわけではありません |
 | 連携 | 🟡 | CM5 のテストベンチで他のサービスと一緒に動作し、メッセージは SDK の共通契約に従います |
@@ -77,7 +77,7 @@ GPL-3.0-or-later - see LICENSE
 
 ### 主な機能：
 * 📈 **OEE 計算（今日実際に動く）：** 可用性 x パフォーマンス x 品質を、`GET /reports/oee` へのリクエストごとにDATALAKEのテレメトリからライブで計算します。
-* 📤 **オンデマンドのCSV/JSONレポート（今日実際に動く）：** `GET /reports/{oee,availability}` はJSONを返し、`GET /reports/{oee,availability}/export` はバイト単位で再現可能なCSVを返します。PDFエクスポート、日次/週次/月次の定期生成、メール/配信の仕組みは存在しません - 下記のROADMAPを参照してください。
+* 📤 **オンデマンドのCSV/JSONレポート（今日実際に動く）：** `GET /reports/{oee,availability}` はJSONを返し、`GET /reports/{oee,availability}/export` はバイト単位で再現可能なCSVを返します。日次・週次のレポートは systemd タイマーでディスクに書き出すこともでき（設定ファイルで有効にするまでオフ）、sha256 のマニフェストが付きます。PDFエクスポート、月次の生成、メール/配信の仕組みは存在しません - 下記のROADMAPを参照してください。
 * 🛠️ **ボトルネック分析（計画中）：** ミッションキューの遅延を引き起こしているロボットやツールを特定するには、下記の本物の `production_event` データソースが必要です - まだ実装されていません。
 * 🌡️ **品質トレーサビリティ（計画中）：** 最終製品をその特定の組立ログ（熱、視覚、機械）に関連付けることは、複数のプロジェクトがDATALAKEに生産データを書き込むようになって初めて実現する将来の作業です。
 * 🕐 **シフト/日境界：** `shift.py` は、シフトや暦日がどこで始まりどこで終わるかについて、すべてのレポートに単一の実在する信頼できる情報源を提供します——真夜中をまたぐ実際の夜勤も含みます。*（実装済み）*
@@ -141,6 +141,8 @@ flowchart LR
 | `--max-concurrent-reports` | `4` | 同時に作るレポート数。超えると 503 になる |
 | `--job-dispatcher-url` / `PRODUCTION_REPORTS_JOB_DISPATCHER_URL` | none | `groupBy=cell` のために、ロボット登録簿から各ロボットのセルを得るジョブディスパッチャー |
 | `--job-dispatcher-token-file` | none | 1 行目がジョブディスパッチャーのベアラートークンであるファイル |
+| `python -m hydra_umc_production_reports.scheduled --config FILE --period daily\|weekly` | `enabled: false` | 直近の完全な日または週の OEE と稼働率を CSV/HTML とし、各ファイルの sha256 を記したマニフェストとともに書き出します。例示の systemd タイマーから実行されます。設定ファイルで `enabled` が true になるまで何も書き込まず、調整可能な値（ソース、計画時間、形式、タイムゾーン）はすべてそのファイルにあります |
+| `GET /reports/availability?mode=state` | `mode=gaps` | テレメトリの途切れではなく、明示的な up/down イベント（1 = 稼働、0 = 停止）から稼働率を求めます。`lookbackMs` はウィンドウ開始時の状態をどこまで遡って探すかを指定し、状態を示すイベントがない時間は停止として数え、`unknown_ms` に示されます |
 
 ## 🚀 クイックスタート
 
@@ -154,7 +156,7 @@ curl http://127.0.0.1:8099/reports/oee?...
 
 ## 🧪 テスト
 
-`python -m pytest -q tests` で自動テスト 165 件を実行します。 ハードウェアも、このマシンの外にあるものも必要ありません。
+`python -m pytest -q tests` で自動テスト 180 件を実行します。 ハードウェアも、このマシンの外にあるものも必要ありません。
 
 CI は `HYDRA_UMC_CI=1 python tools/ci_validate.py` を実行し、マニフェスト、文書、8 つの README、図を検査します。
 
@@ -242,7 +244,7 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 
 * **完了（v0）：** 実際の OEE と可用性の計算、HYDRA-UMC-DATALAKE との実際の HTTP 連携、実際の HTTP API、実際のシフト/日境界、バージョン管理された計算式 + 入力フィンガープリント、バイト単位で再現可能な CSV エクスポート。
 * **次のステップ：** 実際の `production_event` データソース - オーケストレーター（またはロボット）にこのスキーマでサイクル完了を報告させる。
-* **次のステップ：** 永続化/スケジュールされたレポート（現在、各レポートはオンデマンドでライブ計算されています）。
+* **次のステップ：** 月次レポートと、定期レポートの配信（日次・週次はタイマーがディスクに書き出し、それ以外はオンデマンドでライブ計算されます）。
 * **さらに先：** PDF エクスポート、メール/配信の仕組み、そしてダッシュボード。
 * 工具アップグレードのための AI 駆動 ROI 分析。履歴トレンドが保存され次第、これらと同じ OEE データに接続されます。
 

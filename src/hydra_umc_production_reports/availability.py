@@ -52,6 +52,9 @@ class AvailabilityReport:
     # lake) because the window holds too many points to bring in; a gap is then the run of empty buckets, so it is measured to
     # the resolution of the bucket.
     method: str = "points"
+    # "state": the part of the window in which no up/down event says what the state was. It is counted as downtime (an
+    # availability is never better than what the events prove); the figure is kept apart so the report shows how much of it was guessed.
+    unknown_ms: int = 0
 
 
 def _fingerprint_timestamps(timestamps_ms: list[int]) -> str:
@@ -167,4 +170,60 @@ def compute_availability_from_buckets(
         formula_version=FORMULA_VERSION,
         input_fingerprint=hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
         method="aggregate",
+    )
+
+
+def compute_availability_from_states(
+    events: list[tuple[int, bool]],
+    *,
+    window_start_ms: int,
+    window_end_ms: int,
+    initial_up: bool | None = None,
+) -> AvailabilityReport:
+    """Availability from explicit up/down events instead of gaps in a telemetry stream.
+
+    `events` are (timestamp_ms, up) pairs, as sent by a node supervisor or by the heartbeats of a dispatcher; the order does not
+    matter, and when two events share a millisecond the last one given wins. `initial_up` is the state in force when the window
+    opens (the last event before it); when it is None, the time from the start of the window to the first event is `unknown_ms`
+    and counts as downtime, because nothing proves the source was up. The window is half open, [start, end)."""
+    if window_end_ms <= window_start_ms:
+        raise AvailabilityError("window_end_ms must be after window_start_ms")
+    inside: dict[int, bool] = {}
+    for stamp, up in events:
+        if window_start_ms <= stamp < window_end_ms:
+            inside[stamp] = bool(up)
+    periods: list[DowntimePeriod] = []
+    unknown_ms = 0
+    cursor = window_start_ms
+    state: bool | None = initial_up
+    for stamp in sorted(inside):
+        if state is not True and stamp > cursor:
+            periods.append(DowntimePeriod(start_ms=cursor, end_ms=stamp))
+            if state is None:
+                unknown_ms += stamp - cursor
+        cursor, state = stamp, inside[stamp]
+    if state is not True and window_end_ms > cursor:
+        periods.append(DowntimePeriod(start_ms=cursor, end_ms=window_end_ms))
+        if state is None:
+            unknown_ms += window_end_ms - cursor
+    # consecutive down periods (an explicit down followed by another down) are merged so the list stays minimal
+    merged: list[DowntimePeriod] = []
+    for period in periods:
+        if merged and merged[-1].end_ms == period.start_ms:
+            merged[-1] = DowntimePeriod(start_ms=merged[-1].start_ms, end_ms=period.end_ms)
+        else:
+            merged.append(period)
+    downtime_ms = sum(p.duration_ms for p in merged)
+    availability = max(0.0, min(1.0, 1.0 - downtime_ms / (window_end_ms - window_start_ms)))
+    canonical = f"states|{initial_up}|" + ";".join(f"{t}:{int(inside[t])}" for t in sorted(inside))
+    return AvailabilityReport(
+        window_start_ms=window_start_ms,
+        window_end_ms=window_end_ms,
+        downtime_periods=merged,
+        downtime_ms=downtime_ms,
+        availability=availability,
+        formula_version=FORMULA_VERSION,
+        input_fingerprint=hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        method="state",
+        unknown_ms=unknown_ms,
     )
