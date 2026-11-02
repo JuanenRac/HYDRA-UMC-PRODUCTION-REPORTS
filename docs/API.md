@@ -110,6 +110,9 @@ OEE of several sources (robots, cells) over one window, and of the group. Same p
 - `combined` - the group as a whole: availability is all the operating time over all the planned time, performance is all the ideal time over all the operating time (at most 1), quality is all the good parts over all the parts. `null` when no source could be built.
 - `bottleneck` - the source with the lowest OEE and the factor that pulls it down (`availability`, `performance` or `quality`); `null` with fewer than two sources.
 
+- `groupBy=cell` - adds `byCell` (sources, failed sources, combined OEE and bottleneck of each cell) and `cellBottleneck`; the cell of each robot comes from `cells=robot:cell,...` or from the robot registry of the job dispatcher (`--job-dispatcher-url`).
+- `queueWait` (with `groupBy=cell` and `--job-dispatcher-url`) - `byCell` (`jobs`, `meanS`, `p95S`, `maxS` of the wait between the submission of a job and its assignment, for the jobs submitted inside the window), `stillWaiting` (jobs not yet given to a robot) and `bottleneck` (the cell with the highest mean wait, `null` with fewer than two cells). `null`, with the reason in `queueWaitError`, when the dispatcher cannot be read.
+
 **Errors** - `400` for missing or invalid parameters or an empty or oversized list, `502` if DATALAKE is unreachable.
 
 ## `GET /reports/oee/export`

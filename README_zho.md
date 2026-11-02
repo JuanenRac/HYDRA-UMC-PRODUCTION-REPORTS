@@ -85,7 +85,7 @@ GPL-3.0-or-later - see LICENSE
 * 🔑 **使用令牌读取数据湖：** 当 HYDRA-UMC-DATALAKE 要求 Bearer 令牌时，客户端发送 `HYDRA_UMC_DATALAKE_READ_TOKEN`，否则发送 `HYDRA_UMC_DATALAKE_TOKEN`（二者也可作为文件 `..._FILE` 给出，第一行即令牌）。都未设置时与以前一样不发送头部，被拒绝（401）会作为数据湖自身的应答报告。*（已实现）*
 * 🏭 **整个机群的 OEE:** `GET /reports/oee/fleet` 在同一时间窗口内计算多个来源的 OEE，给出每个来源的报告、整组的合并数字(全部运行时间除以全部计划时间、全部良品除以全部产品)以及瓶颈(OEE 最低的来源和拉低它的因素)。没有数据的来源会连同原因一起列出，不会遮住其他来源。
 * ✅ **共享合约的生产事件：** `contract_events.py` 用 HYDRA-UMC-SDK 的合约（封闭模式、真实的日期时间、大于 0 且最长一周的周期时间）校验以 `ProductionEvent` 发布的已完成周期，并据此计算 OEE；任何一个被拒绝的事件都会使整份报告被拒绝。需要可选附加项 `[contract]`。*（已实现）*
-* 🧱 **按单元的 OEE：** `GET /reports/oee/fleet?groupBy=cell` 把数据源归入单元（`cells` 参数，或在使用 `--job-dispatcher-url` 时取 HYDRA-UMC-JOB-DISPATCHER 机器人登记簿的 `location`），给出每个单元的综合 OEE 与瓶颈，并指出 OEE 最低的单元；没有单元的数据源归入 `unassigned`，不会被丢弃。
+* 🧱 **按单元的 OEE：** `GET /reports/oee/fleet?groupBy=cell` 把数据源归入单元（`cells` 参数，或在使用 `--job-dispatcher-url` 时取 HYDRA-UMC-JOB-DISPATCHER 机器人登记簿的 `location`），给出每个单元的综合 OEE 与瓶颈，并指出 OEE 最低的单元；没有单元的数据源归入 `unassigned`，不会被丢弃。 使用 `--job-dispatcher-url` 时，响应还包含 `queueWait`：每个单元队列中作业的等待时间（平均值、第 95 百分位和最大值，来自调度器的作业时间戳）以及等待最久的单元。
 
 ## 🧩 在 HYDRA-UMC 中的角色
 

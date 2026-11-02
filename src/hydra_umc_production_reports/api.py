@@ -26,7 +26,7 @@ from .availability import AvailabilityError
 from .datalake_client import DatalakeClient, DatalakeError
 from .export import export_availability_csv, export_availability_html, export_oee_csv, export_oee_html
 from .oee import OEEError
-from .cells import CellMapError, group_by_cell, parse_cell_map, robot_cells
+from .cells import CellMapError, dispatcher_jobs, group_by_cell, parse_cell_map, queue_wait_by_cell, robot_cells
 from .reports import DEFAULT_STATE_LOOKBACK_MS, ReportError, availability_from_datalake, availability_from_states_datalake, fleet_oee_from_datalake, oee_from_datalake
 from .shift import ShiftError, ShiftSchedule, day_window_ms, shift_window_ms
 
@@ -315,6 +315,16 @@ class Handler(MetricsHandlerMixin, BaseHTTPRequestHandler):
                 _write_error(self, 400, str(e))
                 return
             payload["byCell"] = by_cell
+            # the waiting time in the queue per cell, from the job timestamps of the dispatcher (only with --job-dispatcher-url)
+            if self.server.job_dispatcher_url:
+                try:
+                    jobs = dispatcher_jobs(self.server.job_dispatcher_url, self.server.job_dispatcher_token)
+                    payload["queueWait"] = queue_wait_by_cell(jobs, cell_of, start_ms=start_ms, end_ms=end_ms)
+                except CellMapError as e:
+                    payload["queueWait"] = None
+                    payload["queueWaitError"] = str(e)
+            else:
+                payload["queueWait"] = None
             # the cell with the lowest OEE and the factor that pulls it down (none with fewer than two cells that have data)
             ranked = {name: cell["combined"] for name, cell in by_cell.items() if cell["combined"] is not None}
             if len(ranked) >= 2:

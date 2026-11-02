@@ -87,7 +87,7 @@ GPL-3.0-or-later - see LICENSE
 * 🔑 **トークンを使ってデータレイクを読み取ります：** HYDRA-UMC-DATALAKE が Bearer トークンを求める場合、クライアントは `HYDRA_UMC_DATALAKE_READ_TOKEN`、なければ `HYDRA_UMC_DATALAKE_TOKEN` を送ります（どちらもファイル `..._FILE` として指定でき、1 行目がトークンです）。どちらもなければ従来どおりヘッダーを送らず、拒否（401）はデータレイク自身の応答として報告されます。*（実装済み）*
 * 🏭 **フリート全体の OEE:** `GET /reports/oee/fleet` は、複数のソースの OEE を一つの期間で計算し、各ソースのレポート、グループ全体の合算値(全稼働時間÷全計画時間、全良品数÷全生産数)、そしてボトルネック(OEE が最も低いソースと、それを押し下げている要因)を返します。データのないソースは理由付きで一覧に載り、他のソースを隠しません。
 * ✅ **共有契約の生産イベント:** `contract_events.py` は `ProductionEvent` として公開された完了サイクルを HYDRA-UMC-SDK の契約（閉じたスキーマ、実際の日時、0 より大きく最大 1 週間のサイクル時間）で検証し、それらから OEE を計算します。拒否されたイベントが 1 件でもあればレポート全体が拒否されます。オプションの追加 `[contract]` が必要です。*（実装済み）*
-* 🧱 **セル別 OEE：** `GET /reports/oee/fleet?groupBy=cell` はソースをセルにまとめ（`cells` パラメータ、または `--job-dispatcher-url` 指定時は HYDRA-UMC-JOB-DISPATCHER のロボット登録簿の `location`）、各セルの合成 OEE とボトルネックを示し、OEE が最も低いセルを挙げます。セルのないソースは `unassigned` に入り、捨てられません。
+* 🧱 **セル別 OEE：** `GET /reports/oee/fleet?groupBy=cell` はソースをセルにまとめ（`cells` パラメータ、または `--job-dispatcher-url` 指定時は HYDRA-UMC-JOB-DISPATCHER のロボット登録簿の `location`）、各セルの合成 OEE とボトルネックを示し、OEE が最も低いセルを挙げます。セルのないソースは `unassigned` に入り、捨てられません。 `--job-dispatcher-url` を指定すると、応答に `queueWait`（ディスパッチャーのジョブのタイムスタンプに基づく、各セルのキューでのジョブ待ち時間：平均・95 パーセンタイル・最大、および最も待たされるセル）も含まれます。
 
 ## 🧩 HYDRA-UMC での役割
 
