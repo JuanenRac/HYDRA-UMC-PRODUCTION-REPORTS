@@ -137,7 +137,8 @@ flowchart LR
 | `--addr` | `127.0.0.1` | API が待ち受けるアドレス。それ以外にはトークンか `--allow-anonymous` が必要 |
 | `--port` | `8099` | API のポート |
 | `--datalake-url` | `http://localhost:8095` | 各リクエストが問い合わせるデータレイク |
-| `--token` / `PRODUCTION_REPORTS_TOKEN` | なし | `GET /health` 以外のすべてのルートが要求する Bearer トークン |
+| `--token` / `PRODUCTION_REPORTS_TOKEN` | なし | すべてのルートが要求する Bearer トークン |
+| `--health-open` / `HYDRA_UMC_PRODUCTION_REPORTS_HEALTH_OPEN` | オフ | `GET /health` を開く（閉じている間は `404`）。ループバックには {"status", "service", "version"} を返し、他の呼び出し元には Bearer トークンがある場合のみ返す |
 | `--max-concurrent-reports` | `4` | 同時に作るレポート数。超えると 503 になる |
 | `--job-dispatcher-url` / `PRODUCTION_REPORTS_JOB_DISPATCHER_URL` | none | `groupBy=cell` のために、ロボット登録簿から各ロボットのセルを得るジョブディスパッチャー |
 | `--job-dispatcher-token-file` | none | 1 行目がジョブディスパッチャーのベアラートークンであるファイル |

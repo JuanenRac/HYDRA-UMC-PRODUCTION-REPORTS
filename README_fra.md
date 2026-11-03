@@ -133,7 +133,8 @@ flowchart LR
 | `--addr` | `127.0.0.1` | adresse sur laquelle l'API écoute ; une autre adresse exige un jeton ou `--allow-anonymous` |
 | `--port` | `8099` | port de l'API |
 | `--datalake-url` | `http://localhost:8095` | datalake interrogé par chaque requête |
-| `--token` / `PRODUCTION_REPORTS_TOKEN` | aucun | jeton Bearer exigé par toute route sauf `GET /health` |
+| `--token` / `PRODUCTION_REPORTS_TOKEN` | aucun | jeton Bearer exigé par toute route |
+| `--health-open` / `HYDRA_UMC_PRODUCTION_REPORTS_HEALTH_OPEN` | désactivé | ouvre `GET /health` (`404` tant qu'elle est fermée) : {"status", "service", "version"} pour la boucle locale, pour les autres seulement avec le jeton Bearer |
 | `--max-concurrent-reports` | `4` | rapports construits en même temps ; au-delà une requête reçoit 503 |
 | `--job-dispatcher-url` / `PRODUCTION_REPORTS_JOB_DISPATCHER_URL` | none | répartiteur de tâches dont le registre des robots donne la cellule de chaque robot pour `groupBy=cell` |
 | `--job-dispatcher-token-file` | none | fichier dont la première ligne est le jeton du répartiteur de tâches |

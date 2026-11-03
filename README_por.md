@@ -133,7 +133,8 @@ flowchart LR
 | `--addr` | `127.0.0.1` | endereço onde a API escuta; outro endereço exige um token ou `--allow-anonymous` |
 | `--port` | `8099` | porta da API |
 | `--datalake-url` | `http://localhost:8095` | datalake consultado por cada pedido |
-| `--token` / `PRODUCTION_REPORTS_TOKEN` | nenhum | token Bearer exigido por todas as rotas exceto `GET /health` |
+| `--token` / `PRODUCTION_REPORTS_TOKEN` | nenhum | token Bearer exigido por todas as rotas |
+| `--health-open` / `HYDRA_UMC_PRODUCTION_REPORTS_HEALTH_OPEN` | desligado | abre `GET /health` (`404` enquanto fechada): {"status", "service", "version"} para o loopback e, para os outros, só com o token Bearer |
 | `--max-concurrent-reports` | `4` | relatórios construídos ao mesmo tempo; além disso um pedido recebe 503 |
 | `--job-dispatcher-url` / `PRODUCTION_REPORTS_JOB_DISPATCHER_URL` | none | despachante de trabalhos cujo registo de robôs dá a célula de cada robô para `groupBy=cell` |
 | `--job-dispatcher-token-file` | none | ficheiro cuja primeira linha é o token do despachante de trabalhos |

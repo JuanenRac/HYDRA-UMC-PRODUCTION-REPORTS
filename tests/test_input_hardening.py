@@ -319,11 +319,11 @@ def test_a_report_can_be_asked_for_by_day_and_shift() -> None:
 
 
 # ---------------------------------------------------------------- access and load
-def test_a_token_is_required_for_reports_but_not_for_health() -> None:
+def test_a_token_is_required_for_reports_and_health_is_closed_unless_opened() -> None:
     with running_fake_datalake() as (url, fake), reports_server(url, token="s3cret") as (base, _):
         _events(fake, 2)
         query = "sourceId=r&start=0&end=5000&plannedTimeS=5&idealCycleTimeS=1"
-        assert _get(f"{base}/health")[0] == 200
+        assert _get(f"{base}/health")[0] == 404
         assert _get(f"{base}/reports/oee?{query}")[0] == 401
         assert _get(f"{base}/reports/oee?{query}", token="wrong")[0] == 401
         assert _get(f"{base}/stats")[0] == 401
@@ -343,6 +343,7 @@ def test_the_process_refuses_to_serve_the_network_without_a_token() -> None:
 def test_only_so_many_reports_are_built_at_once() -> None:
     with running_fake_datalake() as (url, fake), reports_server(url, max_concurrent_reports=1) as (base, server):
         _events(fake, 2)
+        server.health_open = True
         assert server.slots.acquire(blocking=False)  # a report is "being built"
         try:
             status, body = _get(f"{base}/reports/oee?sourceId=r&start=0&end=5000&plannedTimeS=5&idealCycleTimeS=1")

@@ -19,8 +19,9 @@ All responses are `application/json` unless a route says otherwise. The API list
 `127.0.0.1` by default. **Another address needs a token** (`--token`, or the
 `PRODUCTION_REPORTS_TOKEN` environment variable, which keeps it out of the process list),
 or `--allow-anonymous` for an open lab instance; the process refuses to start otherwise
-(exit status `2`). With a token every route except `GET /health` demands
-`Authorization: Bearer <token>` and answers `401` without it. Only
+(exit status `2`). With a token every route demands
+`Authorization: Bearer <token>` and answers `401` without it (`GET /health` is closed by
+default and, once opened, is answered on loopback or with the token). Only
 `--max-concurrent-reports` (default 4) reports are built at the same time, because each can
 bring up to two queries of 200,000 points into memory: beyond that a request gets `503`.
 Any failure that is not one of the errors below answers `500` with
@@ -215,7 +216,9 @@ The answers of `/aggregate` are kept in memory (at most 256), keyed by source, k
 
 ## `GET /health`
 
-**Response** - `200 {"status": "ok", "name": "HYDRA-UMC-PRODUCTION-REPORTS"}`. Liveness only; it never asks for the token and never waits for a report slot.
+**Closed by default:** the route answers `404` like any route that does not exist until the operator opens it with `--health-open` or `HYDRA_UMC_PRODUCTION_REPORTS_HEALTH_OPEN=1`.
+
+**Response (open)** - `200 {"status": "ok", "service": "hydra-umc-production-reports", "version": "<version>"}`. Liveness only; a caller on loopback needs no token, any other caller needs the bearer token (`401` otherwise; with no token configured, never), and it never waits for a report slot. Before this version the route was always open and its body was `{"status": "ok", "name": "HYDRA-UMC-PRODUCTION-REPORTS"}`.
 
 ---
 

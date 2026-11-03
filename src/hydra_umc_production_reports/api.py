@@ -21,6 +21,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from . import __version__
+from .health_route import HealthRouteMixin
 from .service_metrics import MetricsHandlerMixin
 from .availability import AvailabilityError
 from .datalake_client import DatalakeClient, DatalakeError
@@ -153,7 +154,7 @@ def _window(params: dict[str, str]) -> tuple[int, int, float | None]:
     return start_ms, end_ms, None
 
 
-class Handler(MetricsHandlerMixin, BaseHTTPRequestHandler):
+class Handler(HealthRouteMixin, MetricsHandlerMixin, BaseHTTPRequestHandler):
     server: "ReportsServer"
     metrics_service = "hydra-umc-production-reports"
     metrics_version = __version__
@@ -176,13 +177,12 @@ class Handler(MetricsHandlerMixin, BaseHTTPRequestHandler):
         return hmac.compare_digest(header[len("Bearer "):].strip().encode("utf-8"), token.encode("utf-8"))
 
     def do_GET(self) -> None:  # noqa: N802
+        # GET /health is closed (404) unless the operator opened it; open, it answers loopback, or a caller with the bearer token.
+        if self.serve_health(self.server.token):
+            return
         if self.serve_metrics(authorized=self._authorized()):
             return
         path = urlparse(self.path).path
-        if path == "/health":
-            # liveness, open so a watchdog can probe it without a credential
-            _write_json(self, 200, {"status": "ok", "name": "HYDRA-UMC-PRODUCTION-REPORTS"})
-            return
         if not self._authorized():
             self.send_response(401)
             self.send_header("WWW-Authenticate", "Bearer")
@@ -439,4 +439,5 @@ class ReportsServer(ThreadingHTTPServer):
         self.job_dispatcher_token = job_dispatcher_token
         self.client = client
         self.token = token or None
+        self.health_open = False  # GET /health answers only when the operator opens it (health_route.py)
         self.slots = threading.BoundedSemaphore(max_concurrent_reports)

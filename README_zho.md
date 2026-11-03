@@ -135,7 +135,8 @@ flowchart LR
 | `--addr` | `127.0.0.1` | API 绑定的地址；其他地址需要令牌或 `--allow-anonymous` |
 | `--port` | `8099` | API 端口 |
 | `--datalake-url` | `http://localhost:8095` | 每个请求所查询的数据湖 |
-| `--token` / `PRODUCTION_REPORTS_TOKEN` | 无 | 除 `GET /health` 外所有路由都需要的 Bearer 令牌 |
+| `--token` / `PRODUCTION_REPORTS_TOKEN` | 无 | 所有路由都需要的 Bearer 令牌 |
+| `--health-open` / `HYDRA_UMC_PRODUCTION_REPORTS_HEALTH_OPEN` | 关闭 | 开启 `GET /health`（关闭时为 `404`）：对回环返回 {"status", "service", "version"}，其他调用方仅在带 Bearer 令牌时返回 |
 | `--max-concurrent-reports` | `4` | 同时生成的报告数；超过后请求得到 503 |
 | `--job-dispatcher-url` / `PRODUCTION_REPORTS_JOB_DISPATCHER_URL` | none | 其机器人登记簿为 `groupBy=cell` 提供每个机器人所在单元的作业调度器 |
 | `--job-dispatcher-token-file` | none | 第一行为作业调度器承载令牌的文件 |

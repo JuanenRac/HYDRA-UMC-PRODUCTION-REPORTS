@@ -23,6 +23,7 @@ import sys
 from . import __version__
 from .api import DEFAULT_MAX_CONCURRENT_REPORTS, ReportsServer
 from .datalake_client import MAX_CACHE_ENTRIES, DatalakeClient
+from .health_route import health_open_requested
 
 PROJECT_NAME = "HYDRA-UMC-PRODUCTION-REPORTS"
 ROLE = (
@@ -65,7 +66,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--token",
         default=os.environ.get("PRODUCTION_REPORTS_TOKEN", ""),
-        help="bearer token every route except /health requires (default: the PRODUCTION_REPORTS_TOKEN environment variable)",
+        help="bearer token every route requires (default: the PRODUCTION_REPORTS_TOKEN environment variable)",
+    )
+    parser.add_argument(
+        "--health-open",
+        action="store_true",
+        help="answer GET /health (open to loopback, to other callers only with the bearer token); closed by default, or set HYDRA_UMC_PRODUCTION_REPORTS_HEALTH_OPEN=1",
     )
     parser.add_argument(
         "--allow-anonymous",
@@ -124,10 +130,11 @@ def main(argv: list[str] | None = None) -> int:
         job_dispatcher_url=args.job_dispatcher_url or None,
         job_dispatcher_token=dispatcher_token,
     )
+    server.health_open = health_open_requested(args.health_open)
     print(f"[production-reports] HTTP API listening on {args.addr}:{args.port} (datalake={args.datalake_url})")
-    print("[production-reports] GET /reports/oee, GET /reports/availability, their /export, GET /stats, GET /health")
+    print("[production-reports] GET /reports/oee, GET /reports/availability, their /export, GET /stats, GET /health (closed unless --health-open)")
     if args.token:
-        print("[production-reports] every route except /health requires a bearer token")
+        print("[production-reports] every route requires a bearer token")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

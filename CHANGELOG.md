@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Change of behavior: `GET /health` is closed by default:** it used to answer `{"status": "ok", "name": ...}` to anybody, without a token; it now answers `404` unless the operator opens it with `--health-open` (or `HYDRA_UMC_PRODUCTION_REPORTS_HEALTH_OPEN=1`). Open, it uses the common route of the family (`health_route.py`): `{"status": "ok", "service": "hydra-umc-production-reports", "version": ...}` (the `name` key is gone) on loopback, and for any other caller only with the bearer token (`401` otherwise). A probe that relied on the old open route must open it (the installer of the OS already does) or read `GET /stats`, which is what the service registry points at.
 - **Waiting time in the queue per cell.** With `--job-dispatcher-url`, `GET /reports/oee/fleet?groupBy=cell` also returns `queueWait`: for the jobs submitted inside the window and already given to a robot, the wait from submission to assignment grouped by the cell of that robot (jobs, mean, 95th percentile and maximum in seconds), the number of jobs still waiting and the cell that waits most. It reads the job timestamps of HYDRA-UMC-JOB-DISPATCHER (`GET /jobs`, at most 20,000 jobs, more is refused); a dispatcher that cannot be read leaves `queueWait` empty with the reason in `queueWaitError`, and the OEE is unchanged. 4 tests.
 
 ## [0.1.9] - Scheduled daily and weekly reports with systemd timers and a checked manifest, and availability from explicit up and down events
