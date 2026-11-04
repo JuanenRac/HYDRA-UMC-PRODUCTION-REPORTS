@@ -26,5 +26,9 @@
     "port": 8099,
     "health_path": "/health",
     "systemd_unit": "hydra-umc-production-reports.service"
-  }
+  },
+  "depends_on": [
+    "HYDRA-UMC-SDK",
+    "HYDRA-UMC-DATALAKE"
+  ]
 }
