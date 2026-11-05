@@ -25,7 +25,7 @@ GPL-3.0-or-later - see LICENSE
 
 ---
 
-**诚实核查——今天真正能跑起来的部分：** 真实的 OEE 公式（`oee.py`）、基于遥测数据缺口的真实可用性计算（`availability.py`）、指向 HYDRA-UMC-DATALAKE 自身 `GET /query` 的真实 HTTP 客户端（`datalake_client.py`）、班次/自然日边界的唯一真实基准——包括真实的跨越午夜的夜班（`shift.py`）、逐字节可复现的 CSV 导出（`export.py`），以及把这一切都暴露出来的真实 HTTP API（`api.py`：`GET /reports/oee`、`/reports/availability`、`/reports/{oee,availability}/export`、`/stats`）都是真实且经过测试的（189 个测试，`pytest`）。下面"关键特性"中列出但实际上尚未实现的部分：本代码库中完全没有任何 PDF 导出（`export.py` 只会写 CSV 和一个自包含的 HTML 页面）、没有每日/每周/每月报告的调度机制，也没有向管理者"发送"任何内容的邮件/投递机制——每份报告都是按需实时计算的，每次 HTTP 调用恰好计算一次。目前也还没有真实的 `production_event` 数据源（本生态系统中今天没有任何项目写入该模式，见下面的"架构"），因此 OEE 从未在生产环境中针对真实运行的 HYDRA-UMC-JOB-DISPATCHER 做过验证——只在测试中针对一个伪造的 DATALAKE 以及手工构造的场景验证过。已交付的具体内容见 `CHANGELOG.md`，尚未完成的部分见下面的路线图。
+**诚实核查——今天真正能跑起来的部分：** 真实的 OEE 公式（`oee.py`）、基于遥测数据缺口的真实可用性计算（`availability.py`）、指向 HYDRA-UMC-DATALAKE 自身 `GET /query` 的真实 HTTP 客户端（`datalake_client.py`）、班次/自然日边界的唯一真实基准——包括真实的跨越午夜的夜班（`shift.py`）、逐字节可复现的 CSV 导出（`export.py`），以及把这一切都暴露出来的真实 HTTP API（`api.py`：`GET /reports/oee`、`/reports/availability`、`/reports/{oee,availability}/export`、`/stats`）都是真实且经过测试的（189 个测试，`pytest`）。下面"关键特性"中列出但实际上尚未实现的部分：本代码库中完全没有任何 PDF 导出（`export.py` 只会写 CSV 和一个自包含的 HTML 页面）、没有每日/每周/每月报告的调度机制，也没有向管理者"发送"任何内容的邮件/投递机制——每份报告都是按需实时计算的，每次 HTTP 调用恰好计算一次。作业调度器可以把已完成的周期作为 `ProductionEvent` 消息交付（`POST /events/production`，默认关闭）；这条路径只在计算机上用真实的调度器代码和伪造的 DATALAKE 验证过，从未在真实生产线上验证。已交付的具体内容见 `CHANGELOG.md`，尚未完成的部分见下面的路线图。
 
 ---
 
@@ -85,6 +85,7 @@ GPL-3.0-or-later - see LICENSE
 * 🔑 **使用令牌读取数据湖：** 当 HYDRA-UMC-DATALAKE 要求 Bearer 令牌时，客户端发送 `HYDRA_UMC_DATALAKE_READ_TOKEN`，否则发送 `HYDRA_UMC_DATALAKE_TOKEN`（二者也可作为文件 `..._FILE` 给出，第一行即令牌）。都未设置时与以前一样不发送头部，被拒绝（401）会作为数据湖自身的应答报告。*（已实现）*
 * 🏭 **整个机群的 OEE:** `GET /reports/oee/fleet` 在同一时间窗口内计算多个来源的 OEE，给出每个来源的报告、整组的合并数字(全部运行时间除以全部计划时间、全部良品除以全部产品)以及瓶颈(OEE 最低的来源和拉低它的因素)。没有数据的来源会连同原因一起列出，不会遮住其他来源。
 * ✅ **共享合约的生产事件：** `contract_events.py` 用 HYDRA-UMC-SDK 的合约（封闭模式、真实的日期时间、大于 0 且最长一周的周期时间）校验以 `ProductionEvent` 发布的已完成周期，并据此计算 OEE；任何一个被拒绝的事件都会使整份报告被拒绝。需要可选附加项 `[contract]`。*（已实现）*
+* ✅ **接收事件（默认关闭）：** `POST /events/production` 每次请求接收作业调度器的一个 `ProductionEvent`，用同一份合约校验，保留最近的若干条（有上限，可选存入重启后仍保留的文件），重发的消息只计一次；`GET /reports/oee/events` 据此计算 OEE。需要身份（服务自己的令牌或 HYDRA-UMC-SERVER 的签名令牌），超出大小限制的请求体会被拒绝（413），洪水式请求也会被拒绝（429），运营者不开启时该路由不存在。*（已实现，仅在计算机上测试）*
 * 🧱 **按单元的 OEE：** `GET /reports/oee/fleet?groupBy=cell` 把数据源归入单元（`cells` 参数，或在使用 `--job-dispatcher-url` 时取 HYDRA-UMC-JOB-DISPATCHER 机器人登记簿的 `location`），给出每个单元的综合 OEE 与瓶颈，并指出 OEE 最低的单元；没有单元的数据源归入 `unassigned`，不会被丢弃。 使用 `--job-dispatcher-url` 时，响应还包含 `queueWait`：每个单元队列中作业的等待时间（平均值、第 95 百分位和最大值，来自调度器的作业时间戳）以及等待最久的单元。
 
 ## 🧩 在 HYDRA-UMC 中的角色
@@ -118,7 +119,7 @@ flowchart LR
 
 * **为何这是 HYDRA-UMC-DATALAKE 的兄弟项目，而非子模块。** 报告生成是一项针对已存储遥测数据的周期性、只读的“查询+计算”任务——将其保持独立，意味着报告生成永远不会与 HYDRA-UMC-TELEMETRY-COLLECTOR 自身对同一存储资源的实时写入相竞争。本项目没有自己的数据库。
 * **真实的 HTTP 集成，而非共享库。** `datalake_client.py` 通过纯 HTTP（`GET /query`）与一个真实运行中的 HYDRA-UMC-DATALAKE 实例通信，并且刻意不直接导入 DATALAKE 的 Python 包——尽管两者目前处于同一个开发环境中。真实的 HTTP 才是真正解耦的集成接口，符合生产环境中独立仓库/服务之间实际通信的方式。
-* **`production_event` schema 是本项目自己的 v0 约定，并非生态系统标准。** OEE 需要知道每个完成周期的零件是否合格、周期耗时多久。本项目将其定义为每个周期一个 DATALAKE `Sample`，`kind="production_event"`，在同一个时间戳下一起写入两个字段：`"good"`（1.0/0.0）和 `"cycleTimeS"`。目前还没有其他项目写入这个 kind——天然的生产者是知道周期何时开始和结束的组件（编排器或机器人本身）：HYDRA-UMC-JOB-DISPATCHER 不保存时间戳，无法计算周期时间。
+* **`production_event` schema 是本项目自己的 v0 约定，并非生态系统标准。** OEE 需要知道每个完成周期的零件是否合格、周期耗时多久。本项目将其定义为每个周期一个 DATALAKE `Sample`，`kind="production_event"`，在同一个时间戳下一起写入两个字段：`"good"`（1.0/0.0）和 `"cycleTimeS"`。目前还没有项目把这个 kind 写入 DATALAKE；作业调度器改为把每个已完成的周期作为共享合约的 `ProductionEvent` 交付（见 `POST /events/production`），因为它知道周期何时开始和结束。
 * **可用性计算故意针对任意已存在的遥测流生效。** 与 OEE 不同，`availability.py` 完全不需要 `production_event` 约定——它使用 DATALAKE 中已存在的任意时间戳序列（例如 HYDRA-UMC-TELEMETRY-COLLECTOR 已经写入的 `motor_temp` 样本），并将连续样本之间大于 `expected_interval_ms x gap_factor` 的间隔标记为真实的停机时间。这正是让本项目在任何项目写入真实 `production_event` 数据之前，就已经能与其遥测“兄弟项目”真正“对话”的原因。
 * **Performance 和 Availability 都被限制在 `[0, 1]` 之间。** 真实周期可能比一个保守的“理想”数值更快，或者运行时间可能超出配置有误的计划窗口；报告 >100% 在算术上是站得住脚的，但在实践中具有误导性，因此两者都会被截断。
 * **未匹配的 `production_event` 字段会被计数并报告，绝不会被静默地赋予默认值。** 如果某条 `"good"` 记录在完全相同的时间戳上没有对应的 `"cycleTimeS"`（一次部分/格式错误的写入），它会被排除在外，被排除的条数会包含在错误/响应中，而不是假设周期时间为 0 秒——那样会破坏 Performance 数值的准确性。
@@ -240,7 +241,7 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 **当前已知限制**
 
 * **已完成（v0）：** 真实的 OEE 与可用性计算、与 HYDRA-UMC-DATALAKE 的真实 HTTP 集成、真实的 HTTP API、真实的班次/日边界、版本化公式 + 输入指纹、逐字节可复现的 CSV 导出。
-* **下一步：** 真实的 `production_event` 数据源——让编排器（或机器人）以此 schema 报告周期完成情况。
+* **下一步：** 在真实生产线上运行生产事件的接收（台架测试）。
 * **下一步：** 每月报告以及定时报告的投递（每日和每周报告由定时器写入磁盘，其余按需实时计算）。
 * **稍后：** PDF 导出、邮件/投递机制，以及仪表盘。
 * 面向工具升级的 AI 驱动 ROI 分析，一旦存储了历史趋势数据，将与这些相同的 OEE 数据相连接。

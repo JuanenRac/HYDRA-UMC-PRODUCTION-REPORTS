@@ -21,7 +21,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from . import __version__
+from .contract_events import ContractEventError
+from .event_intake import ProductionEventStore, RateLimiter
 from .health_route import HealthRouteMixin
+from .oee import compute_oee
+from .server_identity import accepts
 from .service_metrics import MetricsHandlerMixin
 from .availability import AvailabilityError
 from .datalake_client import DatalakeClient, DatalakeError
@@ -169,6 +173,8 @@ class Handler(HealthRouteMixin, MetricsHandlerMixin, BaseHTTPRequestHandler):
 
     def _authorized(self) -> bool:
         token = self.server.token
+        if self.server.identity_key is not None:
+            return accepts(self, token or "", self.server.identity_key)  # the identity of HYDRA-UMC-SERVER is on: nothing is open
         if not token:
             return True
         header = self.headers.get("Authorization", "")
@@ -178,19 +184,20 @@ class Handler(HealthRouteMixin, MetricsHandlerMixin, BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         # GET /health is closed (404) unless the operator opened it; open, it answers loopback, or a caller with the bearer token.
-        if self.serve_health(self.server.token):
+        if self.server.identity_key is not None:
+            if not self._authorized():
+                self._write_unauthorized()  # with the identity of the SERVER on, not even the health path is open
+                return
+            presented = self.headers.get("Authorization", "")[len("Bearer "):].strip()
+            if self.serve_health(presented):  # already authorized: the presented credential stands for the token of the health route
+                return
+        elif self.serve_health(self.server.token):
             return
         if self.serve_metrics(authorized=self._authorized()):
             return
         path = urlparse(self.path).path
         if not self._authorized():
-            self.send_response(401)
-            self.send_header("WWW-Authenticate", "Bearer")
-            body = b'{"error": "a valid Authorization: Bearer token is required"}'
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
+            self._write_unauthorized()
             return
         try:
             self._route(path)
@@ -200,6 +207,93 @@ class Handler(HealthRouteMixin, MetricsHandlerMixin, BaseHTTPRequestHandler):
             except OSError:
                 pass
 
+    def _write_unauthorized(self) -> None:
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", "Bearer")
+        body = b'{"error": "a valid Authorization: Bearer token is required"}'
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_POST(self) -> None:  # noqa: N802
+        """`POST /events/production`: one ProductionEvent of the contract, only when the operator turned the intake on."""
+        self.close_connection = True  # an answer sent before the body was read must not leave the rest of it on the connection
+        path = urlparse(self.path).path
+        events = self.server.events
+        if path != "/events/production" or events is None:
+            _write_error(self, 404, "not found")
+            return
+        if not self._authorized():
+            self._write_unauthorized()
+            return
+        try:
+            self._receive_event(events)
+        except Exception as e:  # noqa: BLE001 - whatever went wrong, the caller gets an answer, not a closed socket
+            try:
+                _write_error(self, 500, f"internal error: {type(e).__name__}")
+            except OSError:
+                pass
+
+    def _receive_event(self, events: ProductionEventStore) -> None:
+        wait = self.server.event_limiter.take() if self.server.event_limiter else 0.0
+        if wait > 0:
+            body = b'{"error": "too many events; slow down"}'
+            self.send_response(429)
+            self.send_header("Retry-After", str(max(1, math.ceil(wait))))
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
+            _write_error(self, 415, "the body must be application/json")
+            return
+        raw_length = self.headers.get("Content-Length", "")
+        if not raw_length.isdigit():
+            _write_error(self, 411, "Content-Length is required")
+            return
+        length = int(raw_length)
+        if length > self.server.event_max_bytes:
+            _write_error(self, 413, f"the event must not be bigger than {self.server.event_max_bytes} bytes")
+            return
+
+        def refuse_constant(name: str) -> float:
+            raise ValueError(f"{name} is not a valid JSON number")
+
+        try:
+            payload = json.loads(self.rfile.read(length), parse_constant=refuse_constant)
+        except (ValueError, UnicodeDecodeError) as e:
+            _write_error(self, 400, f"the body is not valid JSON: {e}")
+            return
+        if not isinstance(payload, dict):
+            _write_error(self, 400, "the body must be one JSON object")
+            return
+        try:
+            fresh = events.add(payload)
+        except ContractEventError as e:
+            _write_error(self, 400, f"refused by the ProductionEvent contract: {e}")
+            return
+        _write_json(self, 202, {"accepted": True, "duplicate": not fresh})
+
+    def _handle_oee_events(self, params: dict[str, str]) -> None:
+        """OEE of one source from the events that were POSTed to this service (not from DATALAKE); the window and the times are as in /reports/oee."""
+        required = {"sourceId", "idealCycleTimeS"} | (set() if "day" in params else {"plannedTimeS"})
+        missing = required - params.keys()
+        if missing:
+            _write_error(self, 400, f"missing required params: {sorted(missing)}")
+            return
+        try:
+            start_ms, end_ms, shift_planned_s = _window(params)
+            planned = _number(params, "plannedTimeS", positive=True) if "plannedTimeS" in params else shift_planned_s
+            ideal = _number(params, "idealCycleTimeS", positive=True)
+            found = self.server.events.events(params["sourceId"], start_ms, end_ms)  # type: ignore[union-attr]
+            report = compute_oee(found, planned_time_s=planned, ideal_cycle_time_s=ideal)  # type: ignore[arg-type]
+        except (ParamError, OEEError, ValueError) as e:
+            _write_error(self, 400, str(e))
+            return
+        _write_json(self, 200, {"source": "events", "events": len(found), "report": report})
+
     def _route(self, path: str) -> None:
         try:
             params = _query_params(self)
@@ -207,7 +301,10 @@ class Handler(HealthRouteMixin, MetricsHandlerMixin, BaseHTTPRequestHandler):
             _write_error(self, 400, str(error))
             return
         if path == "/stats":
-            _write_json(self, 200, {"datalakeUrl": self.server.client.base_url})
+            stats: dict[str, object] = {"datalakeUrl": self.server.client.base_url}
+            if self.server.events is not None:
+                stats["productionEvents"] = {"stored": self.server.events.count(), "sources": len(self.server.events.sources())}
+            _write_json(self, 200, stats)
             return
         routes = {
             "/reports/oee": self._handle_oee,
@@ -216,6 +313,8 @@ class Handler(HealthRouteMixin, MetricsHandlerMixin, BaseHTTPRequestHandler):
             "/reports/availability": self._handle_availability,
             "/reports/availability/export": self._handle_availability_export,
         }
+        if self.server.events is not None:
+            routes["/reports/oee/events"] = self._handle_oee_events
         handler = routes.get(path)
         if handler is None:
             _write_error(self, 404, "not found")
@@ -432,6 +531,10 @@ class ReportsServer(ThreadingHTTPServer):
         max_concurrent_reports: int = DEFAULT_MAX_CONCURRENT_REPORTS,
         job_dispatcher_url: str | None = None,
         job_dispatcher_token: str = "",
+        identity_key: bytes | None = None,
+        events: ProductionEventStore | None = None,
+        event_max_bytes: int = 4096,
+        event_rate_per_minute: float = 600.0,
     ) -> None:
         super().__init__(address, Handler)
         # Where the cell of each robot is read from for groupBy=cell (off unless given).
@@ -439,5 +542,11 @@ class ReportsServer(ThreadingHTTPServer):
         self.job_dispatcher_token = job_dispatcher_token
         self.client = client
         self.token = token or None
+        # The signing key of HYDRA-UMC-SERVER when the operator turned its identity on (server_identity.py); None leaves the earlier rules.
+        self.identity_key = identity_key
+        # The intake of production events (POST /events/production): None (the default) means the route does not exist.
+        self.events = events
+        self.event_max_bytes = event_max_bytes
+        self.event_limiter = RateLimiter(event_rate_per_minute) if events is not None else None
         self.health_open = False  # GET /health answers only when the operator opens it (health_route.py)
         self.slots = threading.BoundedSemaphore(max_concurrent_reports)

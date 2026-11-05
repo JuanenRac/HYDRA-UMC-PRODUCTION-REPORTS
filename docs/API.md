@@ -200,6 +200,30 @@ Not an HTTP route: `contract_events.py` is the entry point for finished cycles p
 
 The reports built from the data lake (`/reports/oee` and the rest) are not changed.
 
+---
+
+## `POST /events/production`
+
+**Does not exist unless the operator turns it on** (`--accept-production-events`, or `"acceptProductionEvents": true` in the file of `--events-config`): without the switch every `POST` answers `404`. The service refuses to start with it on and no identity (`--token`, or `--identity-key-file`).
+
+This is where the job dispatcher sends the cycles it finishes (`-production-events-url` of HYDRA-UMC-JOB-DISPATCHER points at this route). **Body:** one JSON object, a `ProductionEvent` of the shared contract (`schema_version` `"1.0"`, `source_id`, `at_utc`, `good`, `cycle_time_s`, optionally `job_id` and `reject_reason`), with `Content-Type: application/json` and a `Content-Length`.
+
+**Identity:** `Authorization: Bearer <token of the service>` or, with `--identity-key-file` (the signing key of HYDRA-UMC-SERVER), a signed token of the SERVER with the role `admin` or `operator`; with that key on, nothing else in the service is open either. `401` without a valid identity.
+
+| Answer | When |
+|---|---|
+| `202 {"accepted": true, "duplicate": false}` | the event passed the contract and was kept |
+| `202 {"accepted": true, "duplicate": true}` | the same event had already arrived (a producer that retried): it is counted once |
+| `400` | the body is not one JSON object, `NaN`/`Infinity` appear in it, or the contract refuses it (extra field, `good` not a boolean, a cycle time of 0 or above one week, a bad date-time or identifier) |
+| `411` / `413` / `415` | no `Content-Length` / a body above `--events-max-bytes` (default 4096) / a content type other than `application/json` |
+| `429` with `Retry-After` | more than `--events-rate-per-minute` (default 600) on average, with a burst of a tenth of that (at least 5) |
+
+The last `--events-capacity` events (default 100000; the oldest is dropped first) are kept in memory and, with `--events-file`, appended to a file of JSON lines that is read again at start (a damaged line is skipped and counted). Every value can also be set in the JSON file of `--events-config` (`acceptProductionEvents`, `maxBytes`, `ratePerMinute`, `capacity`, `storeFile`); an option of the command line wins over the file.
+
+## `GET /reports/oee/events`
+
+Only exists with the intake on. The OEE of ONE source computed from the events that were POSTed to this service instead of from DATALAKE: `sourceId`, `idealCycleTimeS` and the window (`start` and `end`, or `day` with an optional `shift`, as in `GET /reports/oee`) with `plannedTimeS` (not needed with `day`). **Response** - `200 {"source": "events", "events": <count in the window>, "report": <OEE report>}`; `400` when the window holds no cycle of that source.
+
 ## Aggregates of the data lake and their cache
 
 Before reading the points of a window, a report asks the data lake for how many it holds (`GET /aggregate`, one bucket over the window). A window that fits in one query is read point by point, as before. A window that does not is no longer refused: the OEE comes from the totals the data lake adds up (`method` is `aggregate`), and the availability from the buckets that hold points: a bucket is as wide as the expected interval (wider only when the window would need more than 100,000 buckets), a gap is a run of empty buckets longer than the gap threshold, and it is measured to the resolution of the bucket, never longer than the real gap. When even that resolution is coarser than the gap threshold, the report is refused and asks for a narrower window. A data lake without `/aggregate` is read point by point.
@@ -210,7 +234,7 @@ The answers of `/aggregate` are kept in memory (at most 256), keyed by source, k
 
 ## `GET /stats`
 
-**Response** - `200 {"datalakeUrl": "<url>"}` - the DATALAKE base URL this instance was configured to read from.
+**Response** - `200 {"datalakeUrl": "<url>"}` - the DATALAKE base URL this instance was configured to read from. With the intake of production events on, also `"productionEvents": {"stored": <events>, "sources": <robots>}`.
 
 ---
 
