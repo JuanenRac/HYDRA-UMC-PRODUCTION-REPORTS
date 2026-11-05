@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.2.0] - With the identity of HYDRA-UMC-SERVER on, nothing is open: GET /stats and GET /health ask for an identity too, a token whose expiry is not a finite number or that was issued in the future is refused, and python -m... (and 4 more changes)
+
 - **With the identity of HYDRA-UMC-SERVER on, nothing is open:** `GET /stats` and `GET /health` ask for an identity too, a token whose expiry is not a finite number or that was issued in the future is refused, and `python -m hydra_umc_production_reports.server_identity probe --port PORT --key-file FILE` is the probe of a container (it signs a short-lived token of its own with the key file). Without the switch nothing changes.
 
 - **Receiving the production events (off by default):** `POST /events/production` takes one `ProductionEvent` per request (the job dispatcher sends them with `-production-events-url`), checks it with the contract of the SDK, keeps the last ones (bounded; `--events-file` keeps them across restarts) and counts a retried message once. It needs an identity (`--token` or a signed token of HYDRA-UMC-SERVER with `--identity-key-file`), answers `413` over `--events-max-bytes` and `429` over `--events-rate-per-minute`, and does not exist unless `--accept-production-events` (or the file of `--events-config`) turns it on. `GET /reports/oee/events` builds the OEE of a source from those events. This replaces the note that no project produced the events.
