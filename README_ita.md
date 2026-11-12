@@ -18,14 +18,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Metrics-OEE%20%2F%20KPI%20%2F%20Cycle--Time-green.svg" alt="Metrics">
   <img src="https://img.shields.io/badge/Export-CSV%20%2F%20JSON-blue.svg" alt="Export">
-  <img src="https://img.shields.io/badge/Tests-214%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-219%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.2.1-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**Verifica di onestà - cosa funziona davvero oggi:** la vera formula OEE (`oee.py`), il vero calcolo di disponibilità basato sui buchi di telemetria (`availability.py`), il vero client HTTP verso il `GET /query` proprio di HYDRA-UMC-DATALAKE (`datalake_client.py`), l'unica fonte di verità per i confini turno/giorno, incluso un vero turno di notte che attraversa la mezzanotte (`shift.py`), l'esportazione CSV riproducibile byte per byte (`export.py`), e la vera API HTTP che espone tutto questo (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`) sono reali e testati (214 test, `pytest`). Ciò che NON è implementato, nonostante sia elencato in "Caratteristiche principali" più sotto come se già funzionasse: non esiste alcuna esportazione PDF da nessuna parte in questo codice (`export.py` scrive solo CSV e una pagina HTML autonoma), nessuna pianificazione di report giornalieri/settimanali/mensili, e nessun meccanismo di email/consegna per "inviare" qualcosa a un manager - ogni report viene calcolato dal vivo, su richiesta, esattamente una volta per chiamata HTTP. Il dispatcher dei lavori può consegnare i cicli terminati come messaggi `ProductionEvent` (`POST /events/production`, spento per impostazione predefinita); questo percorso è stato provato solo su un computer, con il vero codice del dispatcher e un DATALAKE finto, mai su una vera linea di produzione. Vedi `CHANGELOG.md` per ciò che è stato consegnato finora esattamente, e la TABELLA DI MARCIA più sotto per ciò che resta aperto.
+**Verifica di onestà - cosa funziona davvero oggi:** la vera formula OEE (`oee.py`), il vero calcolo di disponibilità basato sui buchi di telemetria (`availability.py`), il vero client HTTP verso il `GET /query` proprio di HYDRA-UMC-DATALAKE (`datalake_client.py`), l'unica fonte di verità per i confini turno/giorno, incluso un vero turno di notte che attraversa la mezzanotte (`shift.py`), l'esportazione CSV riproducibile byte per byte (`export.py`), e la vera API HTTP che espone tutto questo (`api.py`: `GET /reports/oee`, `/reports/availability`, `/reports/{oee,availability}/export`, `/stats`) sono reali e testati (219 test, `pytest`). Ciò che NON è implementato, nonostante sia elencato in "Caratteristiche principali" più sotto come se già funzionasse: non esiste alcuna esportazione PDF da nessuna parte in questo codice (`export.py` scrive solo CSV e una pagina HTML autonoma), nessuna pianificazione di report giornalieri/settimanali/mensili, e nessun meccanismo di email/consegna per "inviare" qualcosa a un manager - ogni report viene calcolato dal vivo, su richiesta, esattamente una volta per chiamata HTTP. Il dispatcher dei lavori può consegnare i cicli terminati come messaggi `ProductionEvent` (`POST /events/production`, spento per impostazione predefinita); questo percorso è stato provato solo su un computer, con il vero codice del dispatcher e un DATALAKE finto, mai su una vera linea di produzione. Vedi `CHANGELOG.md` per ciò che è stato consegnato finora esattamente, e la TABELLA DI MARCIA più sotto per ciò che resta aperto.
 
 ---
 
@@ -39,7 +39,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Versione | `0.2.1` |
 | Maturità | Funzionale |
-| Test | 214 (`python -m pytest -q tests`) |
+| Test | 219 (`python -m pytest -q tests`) |
 | Tecnologia | Python / real OEE formula / http.server |
 | Destinazione | Il Raspberry Pi CM5 di una cella HYDRA-UMC |
 | Su hardware reale | Non applicabile: nulla qui gira su hardware |
@@ -55,7 +55,7 @@ Ogni riga è una parte di questo repository e il semaforo dice a che punto è og
 | Area | Stato | Cosa significa qui |
 |---|---|---|
 | Software | 🟡 | Funziona per il suo scopo principale; la verifica di onestà qui sopra elenca ciò che manca ancora |
-| Test | 🟢 | 214 test automatici, eseguiti a ogni modifica |
+| Test | 🟢 | 219 test automatici, eseguiti a ogni modifica |
 | Hardware reale | 🟢 | Non applicabile: nulla qui gira su hardware |
 | Interfaccia e protocolli | 🟡 | Le rotte o i messaggi offerti sono documentati e provati con un client; non tutti i client li hanno ancora usati |
 | Integrazione | 🟡 | Funziona insieme agli altri servizi sul banco prova CM5 e i suoi messaggi seguono i contratti condivisi dell'SDK |
@@ -154,7 +154,7 @@ curl http://127.0.0.1:8099/reports/oee?...
 
 ## 🧪 Test
 
-214 test automatici si eseguono con `python -m pytest -q tests`. Non richiedono hardware né nulla al di fuori di questa macchina.
+219 test automatici si eseguono con `python -m pytest -q tests`. Non richiedono hardware né nulla al di fuori di questa macchina.
 
 La CI esegue `HYDRA_UMC_CI=1 python tools/ci_validate.py`, che controlla il manifesto, i documenti, gli otto README e le immagini.
 

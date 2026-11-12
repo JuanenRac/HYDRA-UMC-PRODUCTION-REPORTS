@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A Dockerfile of its own:** the service can run as a container like the rest of the family (non-root user, a `/data` volume, every interface inside the container, the bearer token only from `PRODUCTION_REPORTS_TOKEN`, a health check that only opens the port because `GET /health` is closed by default). `tests/test_dockerfile.py` keeps it in step with the package script, the systemd port and the files it copies.
+
 ## [0.2.1] - The build test of the repository compiles only on CI or when allowed: for the stacks that compile (rust, go, android, flutter, firmware-c), tools/buildtest.py prints BUILDTEST=SKIPPED with exit status 2 on a plain PC, never a...
 
 - **The build test of the repository compiles only on CI or when allowed:** for the stacks that compile (`rust`, `go`, `android`, `flutter`, `firmware-c`), `tools/build_test.py` prints `BUILD_TEST=SKIPPED` with exit status 2 on a plain PC, never a pass; `ALLOW_LOCAL_BUILD=1` allows it and a CI runner always may. The `python` and `node` stacks are not locked.
