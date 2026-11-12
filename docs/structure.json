@@ -480,6 +480,19 @@
           }
         },
         {
+          "name": "Dockerfile",
+          "desc": {
+            "en": "container image",
+            "es": "imagen de contenedor",
+            "de": "Container-Image",
+            "fr": "image de conteneur",
+            "it": "immagine di container",
+            "ja": "コンテナイメージ",
+            "zh": "容器镜像",
+            "pt": "imagem de contentor"
+          }
+        },
+        {
           "name": "pyproject.toml",
           "desc": {
             "en": "Package metadata + [dev] extras (pytest)",

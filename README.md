@@ -218,6 +218,7 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 ├── tools/                              project tools and CI checks
 ├── .github/                            CI workflow and issue templates
 ├── mejoras_futuras.txt                 The complete, honest list of what's deliberately deferred and why
+├── Dockerfile                          container image
 ├── pyproject.toml                      Package metadata + [dev] extras (pytest)
 ├── bump_version.py                     explicit version bump
 ├── bump_manifest_version.py            Syncs hydra-umc.project.json's version to the native one (--sync)

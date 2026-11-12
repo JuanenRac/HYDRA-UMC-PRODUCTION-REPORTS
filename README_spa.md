@@ -218,6 +218,7 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 ├── tools/                              herramientas del proyecto y comprobaciones del CI
 ├── .github/                            flujo de CI y plantillas de incidencias
 ├── mejoras_futuras.txt                 La lista completa y honesta de lo que queda deliberadamente diferido, y por qué
+├── Dockerfile                          imagen de contenedor
 ├── pyproject.toml                      Metadatos del paquete + extras [dev] (pytest)
 ├── bump_version.py                     Incremento de versión tipo cuentakilómetros (solo lo ejecuta el comando `bump` explícito)
 ├── bump_manifest_version.py            Sincroniza la versión de hydra-umc.project.json con la nativa (--sync)

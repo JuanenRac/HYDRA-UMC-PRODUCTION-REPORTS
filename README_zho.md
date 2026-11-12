@@ -223,6 +223,7 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 ├── tools/                              项目工具和 CI 检查
 ├── .github/                            CI 工作流和 Issue 模板
 ├── mejoras_futuras.txt                 完整、诚实地列出哪些内容被有意推迟及原因
+├── Dockerfile                          容器镜像
 ├── pyproject.toml                      包元数据 + [dev] extras（pytest）
 ├── bump_version.py                     显式提升版本
 ├── bump_manifest_version.py            将 hydra-umc.project.json 的版本与原生版本同步（--sync）

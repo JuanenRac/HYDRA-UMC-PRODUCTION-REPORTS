@@ -218,6 +218,7 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 ├── tools/                              Projektwerkzeuge und CI-Prüfungen
 ├── .github/                            CI-Workflow und Issue-Vorlagen
 ├── mejoras_futuras.txt                 Die vollständige, ehrliche Liste dessen, was bewusst zurückgestellt wurde und warum
+├── Dockerfile                          Container-Image
 ├── pyproject.toml                      Paketmetadaten + [dev]-Extras (pytest)
 ├── bump_version.py                     ausdrückliche Versionserhöhung
 ├── bump_manifest_version.py            Synchronisiert die Version von hydra-umc.project.json mit der nativen (--sync)

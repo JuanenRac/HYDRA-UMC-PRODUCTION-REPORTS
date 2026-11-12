@@ -227,6 +227,7 @@ HYDRA-UMC-PRODUCTION-REPORTS/
 ├── tools/                              プロジェクトのツールと CI の検査
 ├── .github/                            CI ワークフローと Issue テンプレート
 ├── mejoras_futuras.txt                 意図的に後回しにした内容とその理由を完全にまとめた正直なリスト
+├── Dockerfile                          コンテナイメージ
 ├── pyproject.toml                      パッケージメタデータ + [dev] extras（pytest）
 ├── bump_version.py                     明示的なバージョン更新
 ├── bump_manifest_version.py            hydra-umc.project.json のバージョンをネイティブ側と同期（--sync）
