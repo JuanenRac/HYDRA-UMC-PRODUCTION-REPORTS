@@ -90,6 +90,8 @@ Calcola l'**OEE (Overall Equipment Effectiveness)** dell'intero sciame, identifi
 
 **HYDRA-UMC-PRODUCTION-REPORTS** costruisce rapporti di OEE e di disponibilità per i responsabili di stabilimento a partire dallo storico che conserva `HYDRA-UMC-DATALAKE`. Non ha un archivio proprio: ogni richiesta interroga un datalake in funzione, e lo stesso intervallo e gli stessi filtri danno sempre gli stessi byte, con fonti, finestra e versione della formula annotate accanto ai numeri.
 
+> **Piattaforma:** dove questo README dice CM5, intende il banco pilota che funziona oggi; la piattaforma di destinazione di HYDRA-UMC è un NVIDIA Jetson Orin NX da 16 GB, un progetto non costruito né provato.
+
 ## 🏛️ Architettura
 
 <p align="center">

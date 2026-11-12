@@ -90,6 +90,8 @@ Es berechnet die **GAE (Gesamtanlageneffektivität / OEE)** des gesamten Schwarm
 
 **HYDRA-UMC-PRODUCTION-REPORTS** erstellt OEE- und Verfügbarkeitsberichte für Werksleiter aus der Historie, die `HYDRA-UMC-DATALAKE` hält. Er hat keinen eigenen Speicher: Jede Anfrage fragt einen laufenden Datalake ab, und derselbe Bereich und dieselben Filter ergeben immer dieselben Bytes, mit Quellen, Zeitfenster und Formelversion neben den Zahlen.
 
+> **Plattform:** Wo dieses README CM5 sagt, ist der Pilotprüfstand gemeint, der heute läuft; die Zielplattform von HYDRA-UMC ist ein NVIDIA Jetson Orin NX 16 GB, ein Entwurf, der weder gebaut noch getestet wurde.
+
 ## 🏛️ Architektur
 
 <p align="center">

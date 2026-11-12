@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **README: the platform statement:** a note says that where the README speaks of the CM5 it means the pilot bench that runs today, and that the target platform of HYDRA-UMC, an NVIDIA Jetson Orin NX 16 GB, is a design that has not been built or tested.
 - **A Dockerfile of its own:** the service can run as a container like the rest of the family (non-root user, a `/data` volume, every interface inside the container, the bearer token only from `PRODUCTION_REPORTS_TOKEN`, a health check that only opens the port because `GET /health` is closed by default). `tests/test_dockerfile.py` keeps it in step with the package script, the systemd port and the files it copies.
 
 ## [0.2.1] - The build test of the repository compiles only on CI or when allowed: for the stacks that compile (rust, go, android, flutter, firmware-c), tools/buildtest.py prints BUILDTEST=SKIPPED with exit status 2 on a plain PC, never a...

@@ -90,6 +90,8 @@ It calculates the **OEE (Overall Equipment Effectiveness)** of the entire swarm,
 
 **HYDRA-UMC-PRODUCTION-REPORTS** builds OEE and availability reports for plant managers from the history that `HYDRA-UMC-DATALAKE` holds. It keeps no store of its own: every request queries a running datalake, and the same range and filters always give the same bytes, with the sources, the window and the formula version recorded next to the numbers.
 
+> **Platform:** where this README says CM5, it means the pilot bench that runs today; the target platform of HYDRA-UMC is an NVIDIA Jetson Orin NX 16 GB, a design that has not been built or tested.
+
 ## 🏛️ Architecture
 
 <p align="center">

@@ -94,6 +94,8 @@ GPL-3.0-or-later - see LICENSE
 
 **HYDRA-UMC-PRODUCTION-REPORTS** は、`HYDRA-UMC-DATALAKE` が保持する履歴から、工場管理者向けの OEE と稼働率のレポートを作ります。独自のストアは持たず、リクエストのたびに稼働中のデータレイクへ問い合わせます。同じ範囲とフィルターなら常に同じバイト列になり、数値の隣にソース、期間、計算式のバージョンが記録されます。
 
+> **プラットフォーム：** この README の「CM5」は、現在動作している試験用ベンチを指します。HYDRA-UMC の目標プラットフォームは NVIDIA Jetson Orin NX 16 GB ですが、これは製作も試験もされていない設計です。
+
 ## 🏛️ アーキテクチャ
 
 <p align="center">
