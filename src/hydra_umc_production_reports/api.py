@@ -24,6 +24,7 @@ from . import __version__
 from .contract_events import ContractEventError
 from .event_intake import ProductionEventStore, RateLimiter
 from .health_route import HealthRouteMixin
+from .losses import compute_loss_breakdown
 from .oee import compute_oee
 from .server_identity import accepts
 from .service_metrics import MetricsHandlerMixin
@@ -160,6 +161,7 @@ def _window(params: dict[str, str]) -> tuple[int, int, float | None]:
 
 class Handler(HealthRouteMixin, MetricsHandlerMixin, BaseHTTPRequestHandler):
     server: "ReportsServer"
+    _oee_inputs: tuple[float, float]  # the planned time and the ideal cycle time of the report just built
     metrics_service = "hydra-umc-production-reports"
     metrics_version = __version__
 
@@ -310,6 +312,7 @@ class Handler(HealthRouteMixin, MetricsHandlerMixin, BaseHTTPRequestHandler):
             "/reports/oee": self._handle_oee,
             "/reports/oee/export": self._handle_oee_export,
             "/reports/oee/fleet": self._handle_oee_fleet,
+            "/reports/oee/losses": self._handle_oee_losses,
             "/reports/availability": self._handle_availability,
             "/reports/availability/export": self._handle_availability_export,
         }
@@ -356,6 +359,7 @@ class Handler(HealthRouteMixin, MetricsHandlerMixin, BaseHTTPRequestHandler):
                 planned_time_s=planned_time_s,
                 ideal_cycle_time_s=ideal_cycle_time_s,
             )
+            self._oee_inputs = (planned_time_s, ideal_cycle_time_s)
             return report, start_ms, end_ms
         except DatalakeError as e:
             _write_error(self, 502, f"could not read from DATALAKE: {e}")
@@ -363,6 +367,19 @@ class Handler(HealthRouteMixin, MetricsHandlerMixin, BaseHTTPRequestHandler):
         except (ParamError, ReportError, OEEError, ValueError) as e:
             _write_error(self, 400, str(e))
             return None
+
+    def _handle_oee_losses(self, params: dict[str, str]) -> None:
+        """The OEE report plus where the planned time went (see losses.py): the report is the one `GET /reports/oee` gives for the same parameters."""
+        built = self._build_oee_report(params)
+        if built is None:
+            return
+        planned_time_s, ideal_cycle_time_s = self._oee_inputs
+        try:
+            losses = compute_loss_breakdown(built[0], planned_time_s=planned_time_s, ideal_cycle_time_s=ideal_cycle_time_s)
+        except OEEError as e:
+            _write_error(self, 400, str(e))
+            return
+        _write_json(self, 200, {"report": built[0], "losses": losses.to_dict()})
 
     def _handle_oee(self, params: dict[str, str]) -> None:
         built = self._build_oee_report(params)
