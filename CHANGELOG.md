@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A breakdown of the planned time into losses (`GET /reports/oee/losses`):** next to the OEE report, the seconds that went to availability loss (no cycle running), speed loss (slower than the ideal cycle time) and quality loss (parts that were not good), and the productive seconds, which equal the planned time times the OEE; the four add up to the planned time, a report with more operating time than planned is capped and marked `consistent: false`. `losses.py`, `docs/API.md`, `tests/test_losses.py` (11 tests).
 - **README: the platform statement:** a note says that where the README speaks of the CM5 it means the pilot bench that runs today, and that the target platform of HYDRA-UMC, an NVIDIA Jetson Orin NX 16 GB, is a design that has not been built or tested.
 - **A Dockerfile of its own:** the service can run as a container like the rest of the family (non-root user, a `/data` volume, every interface inside the container, the bearer token only from `PRODUCTION_REPORTS_TOKEN`, a health check that only opens the port because `GET /health` is closed by default). `tests/test_dockerfile.py` keeps it in step with the package script, the systemd port and the files it copies.
 

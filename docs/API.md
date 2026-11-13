@@ -116,6 +116,28 @@ OEE of several sources (robots, cells) over one window, and of the group. Same p
 
 **Errors** - `400` for missing or invalid parameters or an empty or oversized list, `502` if DATALAKE is unreachable.
 
+## `GET /reports/oee/losses`
+
+The OEE report of `GET /reports/oee` (same parameters) and where the planned time went, in seconds.
+
+```json
+{
+  "report": {"availability": 0.5, "performance": 1.0, "quality": 0.8, "oee": 0.4, "...": "..."},
+  "losses": {
+    "planned_time_s": 20.0, "availability_loss_s": 10.0, "speed_loss_s": 0.0, "quality_loss_s": 2.0, "productive_s": 8.0,
+    "consistent": true,
+    "fractions": {"availability_loss": 0.5, "speed_loss": 0.0, "quality_loss": 0.1, "productive": 0.4},
+    "largest_loss": "availability"
+  }
+}
+```
+
+- `availability_loss_s` - planned time with no cycle running; `speed_loss_s` - operating time beyond the ideal cycle time; `quality_loss_s` - the ideal time spent on parts that were not good; `productive_s` - the ideal time spent on good parts (`planned_time_s` times `oee`). When the report is consistent the four add up to the planned time.
+- `consistent` is `false` when the events add up to more operating time than planned (`inconsistent_input` of the report); the operating time is then capped at the planned time, so the breakdown never exceeds the window.
+- `largest_loss` - `availability`, `speed` or `quality`; `null` when there is no loss.
+
+**Errors** - the same as `GET /reports/oee`.
+
 ## `GET /reports/oee/export`
 
 Same query parameters, same real query+compute as `GET /reports/oee` above, rendered as a real, reproducible CSV instead of JSON - calling this twice with the same parameters against the same DATALAKE history always returns byte-for-byte identical output. See [`export.py`](../src/hydra_umc_production_reports/export.py). `format=html` (default `csv`) returns the same data as a self-contained HTML page with an embedded SVG chart (no external script or style); any other `format` is a `400`.
