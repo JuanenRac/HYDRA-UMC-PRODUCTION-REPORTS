@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The SDK pin and the shared tools are up to date:** the SDK dependency names the newest release tag, and the shared tools are the canonical copies again.
 - **The unit finds the Python SDK it imports:** the unit had only its own `src` on the `PYTHONPATH`, so a service that imports `hydra_umc_sdk` started and died with `ModuleNotFoundError` when the SDK was not installed system-wide. It now also lists `/opt/hydra-umc/sdk-python`, the folder where the installer of the operating system package puts the SDK. `tests/test_unit_sdk_path.py` (4 tests) fails when the code imports the SDK and the unit does not list the folder.
 - **Tests for the start-up refusals, the intake configuration, the contract reader and the identity tokens:** they need no SDK and no data lake, so they run in the plain CI (coverage of the package from 77% to 87%, `tests/test_startup_intake_and_identity_edges.py`).
 - **A coverage job with a floor and a simulation bench:** CI measures line and branch coverage and fails below the floor; `tests/test_simulation_bench.py` runs the real report server against a simulated data lake with a synthetic shift (fixed seed) and nine failure scenarios (`docs/SIMULATION.md`). The evidence of the project is now `simulator`.
