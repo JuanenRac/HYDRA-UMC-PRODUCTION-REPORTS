@@ -4,6 +4,9 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+
+## [0.2.2]
+
 - **Comments describe what the code does, not what it used to do:** the notes of `datalake_client.py`, `reports.py` and four tests say the present behaviour and the reason for it. Comments only: no behaviour changes.
 - **The SDK pin and the shared tools are up to date:** the SDK dependency names the newest release tag, and the shared tools are the canonical copies again.
 - **The unit finds the Python SDK it imports:** the unit had only its own `src` on the `PYTHONPATH`, so a service that imports `hydra_umc_sdk` started and died with `ModuleNotFoundError` when the SDK was not installed system-wide. It now also lists `/opt/hydra-umc/sdk-python`, the folder where the installer of the operating system package puts the SDK. `tests/test_unit_sdk_path.py` (4 tests) fails when the code imports the SDK and the unit does not list the folder.
@@ -12,6 +15,8 @@ All notable changes to this project are documented here.
 - **A breakdown of the planned time into losses (`GET /reports/oee/losses`):** next to the OEE report, the seconds that went to availability loss (no cycle running), speed loss (slower than the ideal cycle time) and quality loss (parts that were not good), and the productive seconds, which equal the planned time times the OEE; the four add up to the planned time, a report with more operating time than planned is capped and marked `consistent: false`. `losses.py`, `docs/API.md`, `tests/test_losses.py` (11 tests).
 - **README: the platform statement:** a note says that where the README speaks of the CM5 it means the pilot bench that runs today, and that the target platform of HYDRA-UMC, an NVIDIA Jetson Orin NX 16 GB, is a design that has not been built or tested.
 - **A Dockerfile of its own:** the service can run as a container like the rest of the family (non-root user, a `/data` volume, every interface inside the container, the bearer token only from `PRODUCTION_REPORTS_TOKEN`, a health check that only opens the port because `GET /health` is closed by default). `tests/test_dockerfile.py` keeps it in step with the package script, the systemd port and the files it copies.
+
+- Build version synchronized with `hydra-umc.project.json` and the repository-native version source.
 
 ## [0.2.1] - The build test of the repository compiles only on CI or when allowed: for the stacks that compile (rust, go, android, flutter, firmware-c), tools/buildtest.py prints BUILDTEST=SKIPPED with exit status 2 on a plain PC, never a...
 
