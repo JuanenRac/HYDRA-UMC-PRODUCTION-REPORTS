@@ -42,9 +42,9 @@ PRODUCTION_EVENT_KIND = "production_event"
 GOOD_FIELD = "good"
 CYCLE_TIME_FIELD = "cycleTimeS"
 
-# Real bug found while auditing the code: both report functions below
-# used to call client.query() with its own default limit (10000) and
-# never checked whether that limit was actually hit. DATALAKE's own
+# Both report functions below must not call client.query() with its own
+# default limit (10000) without checking whether that limit was actually
+# hit. DATALAKE's own
 # store.py orders every query ASC by timestamp, so a truncated result
 # silently keeps only the EARLIEST rows in the window and drops
 # everything after - a report built from that looks like a real,
@@ -209,13 +209,13 @@ def oee_from_datalake(
         report = compute_oee(events, planned_time_s=planned_time_s, ideal_cycle_time_s=ideal_cycle_time_s)
     except OEEError as e:
         raise ReportError(str(e)) from e
-    # `unmatched` used to only ever surface in the ReportError
-    # message above - reachable only when EVERY good/cycleTimeS pair
-    # failed to line up. A PARTIAL mismatch (some cycles complete, some
-    # not) silently computed a real OEEReport from fewer events than
-    # actually exist, with no trace anywhere that any were dropped - an
-    # incomplete cycle just disappeared from the report. Attached to
-    # every successful report now, not only the all-failed case.
+    # `unmatched` surfaces in the ReportError message above only when
+    # EVERY good/cycleTimeS pair failed to line up. A PARTIAL mismatch
+    # (some cycles complete, some not) would otherwise compute a real
+    # OEEReport from fewer events than actually exist, with no trace
+    # anywhere that any were dropped - an incomplete cycle would just
+    # disappear from the report. It is attached to every successful
+    # report, not only the all-failed case.
     # A planned time longer than the window itself cannot be right either.
     planned_exceeds_window = planned_time_s > (end_ms - start_ms) / 1000
     return replace(

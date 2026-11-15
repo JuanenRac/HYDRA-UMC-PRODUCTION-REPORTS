@@ -134,16 +134,14 @@ class DatalakeClient:
         # The bearer token the data lake asks for (read role). `None` reads it from the environment, "" sends none.
         self._token = _usable_token(token_from_environment() if token is None else token)
         self.timeout_s = timeout_s
-        # Found while auditing the code: this
-        # client had a timeout but no retry on transient network failure -
-        # one network hiccup (a dropped connection, a momentary DNS blip,
-        # DATALAKE mid-restart) used to fail an entire report (daily/
-        # weekly/monthly) instead of retrying before surfacing the
-        # DatalakeError that already exists. Only urllib.error.URLError
+        # A transient network failure (a dropped connection, a momentary
+        # DNS blip, DATALAKE mid-restart) is retried before the
+        # DatalakeError is surfaced, so one network hiccup does not fail an
+        # entire report (daily/weekly/monthly). Only urllib.error.URLError
         # (unreachable host, timeout, connection refused/reset) is
         # retried - an HTTPError is a real response DATALAKE itself sent
-        # and is never transient in the same sense, so it still raises
-        # immediately, same as before this fix.
+        # and is never transient in the same sense, so it raises
+        # immediately.
         self.max_attempts = max_attempts
         self.retry_delay_seconds = retry_delay_seconds
         self._sleep = sleep
