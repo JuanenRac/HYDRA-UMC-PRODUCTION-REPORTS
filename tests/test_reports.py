@@ -73,11 +73,10 @@ def test_oee_from_datalake_handles_unmatched_fields_honestly() -> None:
             )
 
 
-# `unmatched` used to only ever surface inside the ReportError
-# message, reachable only when EVERY cycle failed to match - a PARTIAL
-# mismatch (some cycles complete, some not) silently computed a real,
-# successful report from fewer events than actually existed, with no
-# trace anywhere that any were dropped.
+# `unmatched` surfaces inside the ReportError message only when EVERY
+# cycle failed to match - a PARTIAL mismatch (some cycles complete, some
+# not) must not silently give a successful report from fewer events than
+# actually existed, with no trace anywhere that any were dropped.
 def test_oee_from_datalake_surfaces_unmatched_count_on_an_otherwise_successful_report() -> None:
     with running_fake_datalake() as (url, server):
         points = []

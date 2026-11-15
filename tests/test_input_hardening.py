@@ -3,7 +3,7 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 # =============================================================================
-"""Inputs that used to produce a wrong or missing answer: non-finite numbers,
+"""Inputs that could produce a wrong or missing answer: non-finite numbers,
 network failures in the middle of an answer, window edges, repeated
 timestamps, shift windows, access control and the bound on concurrent work."""
 from __future__ import annotations
