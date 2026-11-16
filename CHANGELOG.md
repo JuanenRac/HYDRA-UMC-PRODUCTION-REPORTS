@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The cache of aggregates has a lock:** the server answers up to four reports at once with one client, and the cache of the client is now read, written and trimmed under a lock, so a full cache can no longer fail a report with a server error and the hit and miss counters add up. Tests that fail without the lock.
 
 ## [0.2.2]
 
