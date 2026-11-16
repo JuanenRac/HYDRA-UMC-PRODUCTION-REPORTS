@@ -18,6 +18,7 @@ from __future__ import annotations
 import http.client
 import json
 import os
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -129,6 +130,7 @@ class DatalakeClient:
         self._cache_entries = max(0, int(cache_entries))  # 0 turns the cache off
         self._cache: "OrderedDict[tuple, tuple[float, str, list[Bucket]]]" = OrderedDict()
         self._clock = clock
+        self._cache_lock = threading.Lock()   # the server answers several reports at once with this one client
         self.cache_hits = 0
         self.cache_misses = 0
         # The bearer token the data lake asks for (read role). `None` reads it from the environment, "" sends none.
@@ -248,18 +250,20 @@ class DatalakeClient:
         same fingerprint refreshes the entry, a different one (new or deleted points) asks the data lake again."""
         key = (self.base_url, source_id, kind, field, agg, bucket_ms, start, before)
         now = self._clock()
-        cached = self._cache.get(key) if self._cache_entries else None
-        if cached is not None and now - cached[0] < self.cache_ttl_seconds:
-            self.cache_hits += 1
-            self._cache.move_to_end(key)
-            return list(cached[2])
+        with self._cache_lock:
+            cached = self._cache.get(key) if self._cache_entries else None
+            if cached is not None and now - cached[0] < self.cache_ttl_seconds:
+                self.cache_hits += 1
+                self._cache.move_to_end(key)
+                return list(cached[2])
         fingerprint = self.series_fingerprint(source_id=source_id, kind=kind, field=field) if self._cache_entries else None
-        if cached is not None and fingerprint is not None and cached[1] == fingerprint:
-            self.cache_hits += 1
-            self._cache[key] = (now, fingerprint, cached[2])
-            self._cache.move_to_end(key)
-            return list(cached[2])
-        self.cache_misses += 1
+        with self._cache_lock:
+            if cached is not None and fingerprint is not None and cached[1] == fingerprint:
+                self.cache_hits += 1
+                self._cache[key] = (now, fingerprint, cached[2])
+                self._cache.move_to_end(key)
+                return list(cached[2])
+            self.cache_misses += 1
         raw = self._get(
             "/aggregate",
             {"sourceId": source_id, "kind": kind, "field": field, "bucketMs": bucket_ms, "start": start, "before": before, "agg": agg},
@@ -269,7 +273,8 @@ class DatalakeClient:
         except (KeyError, TypeError, ValueError) as e:
             raise DatalakeError(f"DATALAKE answered /aggregate with a shape this client does not know: {e!r}") from e
         if self._cache_entries and fingerprint is not None:
-            self._cache[key] = (now, fingerprint, buckets)
-            while len(self._cache) > self._cache_entries:
-                self._cache.popitem(last=False)
+            with self._cache_lock:
+                self._cache[key] = (now, fingerprint, buckets)
+                while len(self._cache) > self._cache_entries:
+                    self._cache.popitem(last=False)
         return list(buckets)
