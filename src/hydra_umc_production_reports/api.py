@@ -124,8 +124,9 @@ def _window(params: dict[str, str]) -> tuple[int, int, float | None]:
     implies). Either `start` and `end` (epoch ms) are given, or `day`
     (YYYY-MM-DD) with an optional `shift` index: the window then comes from
     the shift schedule (`shiftLengthHours`, default 8; `firstShiftStartHour`,
-    default 0; `tzOffsetMinutes`, default 0 - a fixed offset east of UTC), so
-    every report of a plant agrees on where a shift begins and ends."""
+    default 0; `tzOffsetMinutes`, default 0 - a fixed offset east of UTC; or
+    `timezone`, an IANA zone name that follows the local clock and its changes),
+    so every report of a plant agrees on where a shift begins and ends."""
     if "day" in params:
         if "start" in params or "end" in params:
             raise ParamError("give either start and end, or day (with an optional shift), not both")
@@ -134,19 +135,23 @@ def _window(params: dict[str, str]) -> tuple[int, int, float | None]:
         except ValueError:
             raise ParamError(f"day must be YYYY-MM-DD, got {params['day']!r}") from None
         offset = int(_number(params, "tzOffsetMinutes")) if "tzOffsetMinutes" in params else 0
+        zone_name = params.get("timezone") or None
+        if zone_name and "tzOffsetMinutes" in params:
+            raise ParamError("give either timezone or tzOffsetMinutes, not both")
         try:
             if "shift" in params:
                 schedule = ShiftSchedule(
                     shift_length_hours=_number(params, "shiftLengthHours", positive=True) if "shiftLengthHours" in params else 8.0,
                     first_shift_start_hour=_number(params, "firstShiftStartHour", minimum=0) if "firstShiftStartHour" in params else 0.0,
                     timezone_offset_minutes=offset,
+                    timezone_name=zone_name,
                 )
                 index = _integer(params, "shift")
                 if not 0 <= index < schedule.shifts_per_day:
                     raise ParamError(f"shift must be between 0 and {schedule.shifts_per_day - 1}")
                 start_ms, end_ms = shift_window_ms(schedule, day, index)
             else:
-                start_ms, end_ms = day_window_ms(day, timezone_offset_minutes=offset)
+                start_ms, end_ms = day_window_ms(day, timezone_offset_minutes=offset, timezone_name=zone_name)
         except ShiftError as e:
             raise ParamError(str(e)) from e
         return start_ms, end_ms, (end_ms - start_ms) / 1000

@@ -34,7 +34,7 @@ from .reports import (
     availability_from_states_datalake,
     oee_from_datalake,
 )
-from .shift import day_window_ms
+from .shift import ShiftError, day_window_ms, load_zone
 
 PERIODS = {"daily": 1, "weekly": 7}
 FORMATS = ("csv", "html")
@@ -67,6 +67,7 @@ class ScheduleConfig:
     output_dir: str = ""
     formats: tuple[str, ...] = ("csv", "html")
     timezone_offset_minutes: int = 0
+    timezone: str = ""
     planned_time_s_per_day: float = 28800.0
     ideal_cycle_time_s: float = 10.0
     sources: tuple[SourceConfig, ...] = field(default_factory=tuple)
@@ -90,7 +91,7 @@ def _number(raw: object, name: str, *, positive: bool = False, minimum: float | 
 def parse_config(data: object) -> ScheduleConfig:
     if not isinstance(data, dict):
         raise ScheduleError("the configuration must be a JSON object")
-    known = {"enabled", "datalake_url", "output_dir", "formats", "timezone_offset_minutes", "planned_time_s_per_day", "ideal_cycle_time_s", "sources"}
+    known = {"enabled", "datalake_url", "output_dir", "formats", "timezone_offset_minutes", "timezone", "planned_time_s_per_day", "ideal_cycle_time_s", "sources"}
     unknown = sorted(set(data) - known)
     if unknown:
         raise ScheduleError(f"unknown configuration keys: {unknown}")
@@ -138,11 +139,22 @@ def parse_config(data: object) -> ScheduleConfig:
     url = data.get("datalake_url", "http://127.0.0.1:8095")
     if not isinstance(url, str) or not url.startswith(("http://", "https://")):
         raise ScheduleError("datalake_url must be an http(s) URL")
+    zone = data.get("timezone", "")
+    if not isinstance(zone, str):
+        raise ScheduleError("timezone must be text")
+    if zone:
+        if "timezone_offset_minutes" in data:
+            raise ScheduleError("give either timezone or timezone_offset_minutes, not both")
+        try:
+            load_zone(zone)
+        except ShiftError as exc:
+            raise ScheduleError(str(exc)) from exc
     return ScheduleConfig(
         enabled=enabled,
         datalake_url=url,
         output_dir=output_dir,
         formats=formats,
+        timezone=zone,
         timezone_offset_minutes=int(_number(data.get("timezone_offset_minutes", 0), "timezone_offset_minutes", minimum=-14 * 60, maximum=14 * 60)),
         planned_time_s_per_day=_number(data.get("planned_time_s_per_day", 28800.0), "planned_time_s_per_day", positive=True),
         ideal_cycle_time_s=_number(data.get("ideal_cycle_time_s", 10.0), "ideal_cycle_time_s", positive=True),
@@ -160,12 +172,12 @@ def load_config(path: str) -> ScheduleConfig:
         raise ScheduleError(f"the configuration is not valid JSON: {exc.msg}") from exc
 
 
-def period_window(period: str, until: date, *, timezone_offset_minutes: int = 0) -> tuple[int, int]:
+def period_window(period: str, until: date, *, timezone_offset_minutes: int = 0, timezone_name: str | None = None) -> tuple[int, int]:
     """[start, end) in epoch ms of the `period` that ends at the local midnight that opens `until`."""
     if period not in PERIODS:
         raise ScheduleError(f"period must be one of {sorted(PERIODS)}")
-    start, _ = day_window_ms(until - timedelta(days=PERIODS[period]), timezone_offset_minutes=timezone_offset_minutes)
-    end, _ = day_window_ms(until, timezone_offset_minutes=timezone_offset_minutes)
+    start, _ = day_window_ms(until - timedelta(days=PERIODS[period]), timezone_offset_minutes=timezone_offset_minutes, timezone_name=timezone_name)
+    end, _ = day_window_ms(until, timezone_offset_minutes=timezone_offset_minutes, timezone_name=timezone_name)
     return start, end
 
 
@@ -192,7 +204,7 @@ def run_schedule(
         raise ScheduleError("output_dir is empty")
     if not config.sources:
         raise ScheduleError("sources is empty")
-    start_ms, end_ms = period_window(period, until, timezone_offset_minutes=config.timezone_offset_minutes)
+    start_ms, end_ms = period_window(period, until, timezone_offset_minutes=config.timezone_offset_minutes, timezone_name=config.timezone or None)
     days = PERIODS[period]
     folder = Path(config.output_dir) / period / until.isoformat()
     folder.mkdir(parents=True, exist_ok=True)
@@ -305,7 +317,10 @@ def main(argv: list[str] | None = None) -> int:
             except ValueError:
                 raise ScheduleError("--until must be YYYY-MM-DD") from None
         else:
-            until = (datetime.now(timezone.utc) + timedelta(minutes=config.timezone_offset_minutes)).date()
+            if config.timezone:
+                until = datetime.now(load_zone(config.timezone)).date()
+            else:
+                until = (datetime.now(timezone.utc) + timedelta(minutes=config.timezone_offset_minutes)).date()
         client = DatalakeClient(config.datalake_url)
         code, manifest = run_schedule(config, client, period=args.period, until=until)
     except ScheduleError as exc:

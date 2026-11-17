@@ -6,14 +6,17 @@
 """Real shift/day-boundary computation - a single source of truth for
 where one calendar day or shift ends and the next begins, so two reports
 built from the same real DATALAKE history can't silently disagree about
-the window they're both supposedly describing. DST transitions are not
-handled - this project's timezones are fixed UTC offsets, a real,
-deliberately deferred limitation rather than silently assumed away.
+the window they're both supposedly describing. A zone is either a fixed
+UTC offset (minutes east of UTC) or a named IANA zone (`Europe/Madrid`):
+with a name the day and the shifts follow the local clock, so the day a
+clock change happens is really 23 or 25 hours long and a report plans
+exactly that much time.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 _EPOCH = date(1970, 1, 1)
 MS_PER_HOUR = 3_600_000
@@ -33,9 +36,35 @@ def check_timezone_offset(minutes: int) -> None:
         raise ShiftError(f"the timezone offset must be between -{MAX_TIMEZONE_OFFSET_MINUTES} and {MAX_TIMEZONE_OFFSET_MINUTES} minutes")
 
 
-def day_window_ms(day: date, *, timezone_offset_minutes: int = 0) -> tuple[int, int]:
+def load_zone(name: str) -> ZoneInfo:
+    """The named IANA zone, or a ShiftError that says the name is not known."""
+    if not isinstance(name, str) or not name or len(name) > 64 or name.startswith(("/", ".")) or ".." in name:
+        raise ShiftError("the timezone must be an IANA zone name such as Europe/Madrid")
+    try:
+        return ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError, OSError):
+        raise ShiftError(f"unknown timezone {name!r}: use an IANA zone name such as Europe/Madrid") from None
+
+
+def local_wall_to_utc_ms(zone: ZoneInfo, day: date, minutes_into_day: int) -> int:
+    """UTC epoch ms of the wall-clock moment `minutes_into_day` after the local
+    midnight that opens `day` (it may go past 24 h, into the next day). A time
+    skipped by a clock change resolves to the instant the clock would have
+    shown; a repeated one resolves to its first occurrence."""
+    naive = datetime(day.year, day.month, day.day) + timedelta(minutes=minutes_into_day)
+    local = naive.replace(tzinfo=zone, fold=0)
+    delta = local.astimezone(timezone.utc) - datetime(1970, 1, 1, tzinfo=timezone.utc)
+    return (delta.days * 86_400 + delta.seconds) * 1000
+
+
+def day_window_ms(day: date, *, timezone_offset_minutes: int = 0, timezone_name: str | None = None) -> tuple[int, int]:
     """Real UTC-ms [start, end) boundaries for one calendar day, local to
-    a fixed timezone offset (minutes east of UTC - negative is west)."""
+    a fixed timezone offset (minutes east of UTC - negative is west) or, with
+    `timezone_name`, to a named zone whose day lasts 23 or 25 hours on the
+    day of a clock change."""
+    if timezone_name:
+        zone = load_zone(timezone_name)
+        return local_wall_to_utc_ms(zone, day, 0), local_wall_to_utc_ms(zone, day, 24 * 60)
     check_timezone_offset(timezone_offset_minutes)
     local_midnight_ms = (day - _EPOCH).days * MS_PER_DAY
     start_ms = local_midnight_ms - timezone_offset_minutes * 60_000
@@ -51,9 +80,12 @@ class ShiftSchedule:
     shift_length_hours: float
     first_shift_start_hour: float  # local hour-of-day, [0, 24), shift 0 starts here
     timezone_offset_minutes: int = 0
+    timezone_name: str | None = None  # an IANA zone; when set it replaces the fixed offset
 
     def __post_init__(self) -> None:
         check_timezone_offset(self.timezone_offset_minutes)
+        if self.timezone_name:
+            load_zone(self.timezone_name)
         if not (0 < self.shift_length_hours <= 24):
             raise ShiftError("shift_length_hours must be in (0, 24]")
         if not (0 <= self.first_shift_start_hour < 24):
@@ -85,6 +117,14 @@ def shift_window_ms(schedule: ShiftSchedule, day: date, shift_index: int) -> tup
     22:00-06:00)."""
     if shift_index < 0:
         raise ShiftError("shift_index must be >= 0")
+    if schedule.timezone_name:
+        zone = load_zone(schedule.timezone_name)
+        first = round(schedule.first_shift_start_hour * 60)
+        length = schedule.shift_length_minutes
+        return (
+            local_wall_to_utc_ms(zone, day, first + shift_index * length),
+            local_wall_to_utc_ms(zone, day, first + (shift_index + 1) * length),
+        )
     day_start_ms, _ = day_window_ms(day, timezone_offset_minutes=schedule.timezone_offset_minutes)
     shift_length_ms = schedule.shift_length_minutes * 60_000
     first_start_ms = day_start_ms + round(schedule.first_shift_start_hour * MS_PER_HOUR)
@@ -97,7 +137,18 @@ def shift_index_for_timestamp(schedule: ShiftSchedule, timestamp_ms: int) -> tup
     shift index a real timestamp falls into. Only meaningful for a
     `shift_index` within `schedule.shifts_per_day` for that day - the
     schedule must evenly divide 24h (see `shifts_per_day`)."""
-    _ = schedule.shifts_per_day  # raises ShiftError for an uneven schedule
+    count = schedule.shifts_per_day  # raises ShiftError for an uneven schedule
+    if schedule.timezone_name:
+        zone = load_zone(schedule.timezone_name)
+        local = datetime.fromtimestamp(timestamp_ms / 1000, tz=timezone.utc).astimezone(zone)
+        first = round(schedule.first_shift_start_hour * 60)
+        guess = (local.replace(tzinfo=None) - timedelta(minutes=first)).date()
+        for candidate in (guess - timedelta(days=1), guess, guess + timedelta(days=1)):
+            for index in range(count):
+                start, end = shift_window_ms(schedule, candidate, index)
+                if start <= timestamp_ms < end:
+                    return candidate, index
+        raise ShiftError("the timestamp falls in no shift of the schedule")
     shift_length_ms = schedule.shift_length_minutes * 60_000
     first_start_ms = round(schedule.first_shift_start_hour * MS_PER_HOUR)
     local_ms = timestamp_ms + schedule.timezone_offset_minutes * 60_000
