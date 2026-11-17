@@ -24,9 +24,19 @@ class ShiftError(ValueError):
     """A real, specific reason a shift/day window couldn't be computed."""
 
 
+MAX_TIMEZONE_OFFSET_MINUTES = 14 * 60
+
+
+def check_timezone_offset(minutes: int) -> None:
+    """Refuse an offset that no place on Earth has (UTC-12 to UTC+14 and a margin)."""
+    if abs(minutes) > MAX_TIMEZONE_OFFSET_MINUTES:
+        raise ShiftError(f"the timezone offset must be between -{MAX_TIMEZONE_OFFSET_MINUTES} and {MAX_TIMEZONE_OFFSET_MINUTES} minutes")
+
+
 def day_window_ms(day: date, *, timezone_offset_minutes: int = 0) -> tuple[int, int]:
     """Real UTC-ms [start, end) boundaries for one calendar day, local to
     a fixed timezone offset (minutes east of UTC - negative is west)."""
+    check_timezone_offset(timezone_offset_minutes)
     local_midnight_ms = (day - _EPOCH).days * MS_PER_DAY
     start_ms = local_midnight_ms - timezone_offset_minutes * 60_000
     return start_ms, start_ms + MS_PER_DAY
@@ -43,6 +53,7 @@ class ShiftSchedule:
     timezone_offset_minutes: int = 0
 
     def __post_init__(self) -> None:
+        check_timezone_offset(self.timezone_offset_minutes)
         if not (0 < self.shift_length_hours <= 24):
             raise ShiftError("shift_length_hours must be in (0, 24]")
         if not (0 <= self.first_shift_start_hour < 24):
