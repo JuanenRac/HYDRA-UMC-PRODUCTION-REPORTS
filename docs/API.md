@@ -43,7 +43,7 @@ Computes an OEE (Overall Equipment Effectiveness) report from `HYDRA-UMC-DATALAK
 | `sourceId` | string, required | Which machine/robot to report on. |
 | `start` / `end` | integer | Window `[start, end)`, epoch ms (`end` must be after `start`). A sample exactly at `end` belongs to the next window, so consecutive reports never count it twice. |
 | `day` | `YYYY-MM-DD` | Instead of `start`/`end`: the window is that calendar day, or one shift of it when `shift` is given. |
-| `shift` | integer | 0-based shift of `day`. Optional: `shiftLengthHours` (default `8`, and it must divide 24 h in whole minutes), `firstShiftStartHour` (default `0`) and `tzOffsetMinutes` (default `0`, a fixed offset east of UTC, from -840 to 840) define the schedule, so every report of a plant agrees on where a shift begins and ends. |
+| `shift` | integer | 0-based shift of `day`. Optional: `shiftLengthHours` (default `8`, and it must divide 24 h in whole minutes), `firstShiftStartHour` (default `0`) and `tzOffsetMinutes` (default `0`, a fixed offset east of UTC, from -840 to 840) define the schedule; `timezone` (an IANA zone name such as `Europe/Madrid`, not combined with `tzOffsetMinutes`) makes the day and the shifts follow the local clock, so the day of a clock change lasts 23 or 25 hours and the planned time is that real duration, so every report of a plant agrees on where a shift begins and ends. |
 | `plannedTimeS` | float, finite and > 0 | Planned production time for the window, in seconds. Required with `start`/`end`; with `day` it defaults to the whole window. |
 | `idealCycleTimeS` | float, finite and > 0 | The ideal (best-case) cycle time per unit, in seconds. |
 
