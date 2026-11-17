@@ -104,3 +104,13 @@ def test_shift_window_ms_rejects_negative_shift_index() -> None:
     schedule = ShiftSchedule(shift_length_hours=8.0, first_shift_start_hour=0.0)
     with pytest.raises(ShiftError):
         shift_window_ms(schedule, date(2026, 8, 28), -1)
+
+
+def test_an_offset_that_no_place_has_is_refused() -> None:
+    day_window_ms(date(2026, 8, 28), timezone_offset_minutes=840)
+    day_window_ms(date(2026, 8, 28), timezone_offset_minutes=-840)
+    for bad in (841, -841, 100_000):
+        with pytest.raises(ShiftError):
+            day_window_ms(date(2026, 8, 28), timezone_offset_minutes=bad)
+        with pytest.raises(ShiftError):
+            ShiftSchedule(shift_length_hours=8.0, first_shift_start_hour=0.0, timezone_offset_minutes=bad)

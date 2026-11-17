@@ -72,7 +72,7 @@ class ScheduleConfig:
     sources: tuple[SourceConfig, ...] = field(default_factory=tuple)
 
 
-def _number(raw: object, name: str, *, positive: bool = False, minimum: float | None = None) -> float:
+def _number(raw: object, name: str, *, positive: bool = False, minimum: float | None = None, maximum: float | None = None) -> float:
     if isinstance(raw, bool) or not isinstance(raw, (int, float)):
         raise ScheduleError(f"{name} must be a number")
     value = float(raw)
@@ -82,6 +82,8 @@ def _number(raw: object, name: str, *, positive: bool = False, minimum: float | 
         raise ScheduleError(f"{name} must be greater than 0")
     if minimum is not None and value < minimum:
         raise ScheduleError(f"{name} must be at least {minimum}")
+    if maximum is not None and value > maximum:
+        raise ScheduleError(f"{name} must be at most {maximum}")
     return value
 
 
@@ -141,7 +143,7 @@ def parse_config(data: object) -> ScheduleConfig:
         datalake_url=url,
         output_dir=output_dir,
         formats=formats,
-        timezone_offset_minutes=int(_number(data.get("timezone_offset_minutes", 0), "timezone_offset_minutes", minimum=-14 * 60)),
+        timezone_offset_minutes=int(_number(data.get("timezone_offset_minutes", 0), "timezone_offset_minutes", minimum=-14 * 60, maximum=14 * 60)),
         planned_time_s_per_day=_number(data.get("planned_time_s_per_day", 28800.0), "planned_time_s_per_day", positive=True),
         ideal_cycle_time_s=_number(data.get("ideal_cycle_time_s", 10.0), "ideal_cycle_time_s", positive=True),
         sources=tuple(sources),

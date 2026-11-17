@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The timezone offset is limited to what exists:** `tzOffsetMinutes` of a request and `timezone_offset_minutes` of the scheduled reports must lie between -840 and 840 minutes (UTC-14 to UTC+14); a larger value is refused with the reason instead of moving the window by days.
+
 - **The cache of aggregates has a lock:** the server answers up to four reports at once with one client, and the cache of the client is now read, written and trimmed under a lock, so a full cache can no longer fail a report with a server error and the hit and miss counters add up. Tests that fail without the lock.
 
 ## [0.2.2]
