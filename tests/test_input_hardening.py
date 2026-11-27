@@ -268,7 +268,7 @@ def test_the_exports_carry_the_discarded_count_the_consistency_flag_and_the_prov
         _events(fake, 3)
         report = oee_from_datalake(DatalakeClient(url), source_id="r", start_ms=0, end_ms=10000, planned_time_s=10.0, ideal_cycle_time_s=2.0)
         csv_text = export_oee_csv(report, source_id="r", start_ms=0, end_ms=10000)
-        assert "unmatched_count" in csv_text and "inconsistent_input" in csv_text and "exportVersion,2" in csv_text
+        assert "unmatched_count" in csv_text and "inconsistent_input" in csv_text and "exportVersion,3" in csv_text
         html = export_oee_html(report, source_id="r", start_ms=0, end_ms=10000)
         assert "unmatched_count" in html and "pointsUsed" in html and "generatorVersion" in html
 

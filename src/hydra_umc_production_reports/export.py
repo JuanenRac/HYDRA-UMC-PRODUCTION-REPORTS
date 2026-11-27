@@ -21,8 +21,9 @@ from .availability import AvailabilityReport
 from .oee import OEEReport
 
 # Version of the CSV/HTML layout itself (not of the formulas): 2 added the
-# discarded-cycle count and the input-consistency flag to the OEE export.
-EXPORT_VERSION = 2
+# discarded-cycle count and the input-consistency flag to the OEE export, 3 the method of the OEE ("events" or "aggregate") and the two
+# inputs it was calculated with (planned time and ideal cycle time; empty when the caller did not give them).
+EXPORT_VERSION = 3
 
 OEE_FIELD_ORDER = [
     "formula_version",
@@ -36,6 +37,9 @@ OEE_FIELD_ORDER = [
     "operating_time_s",
     "unmatched_count",
     "inconsistent_input",
+    "method",
+    "plannedTimeS",
+    "idealCycleTimeS",
 ]
 
 AVAILABILITY_FIELD_ORDER = [
@@ -96,6 +100,11 @@ def _render_csv(
     return buf.getvalue()
 
 
+def _oee_row(report: OEEReport, planned_time_s: float | None, ideal_cycle_time_s: float | None) -> dict[str, object]:
+    return {**asdict(report), "plannedTimeS": "" if planned_time_s is None else planned_time_s,
+            "idealCycleTimeS": "" if ideal_cycle_time_s is None else ideal_cycle_time_s}
+
+
 def export_oee_csv(
     report: OEEReport,
     *,
@@ -103,11 +112,13 @@ def export_oee_csv(
     start_ms: int,
     end_ms: int,
     filters: dict[str, str] | None = None,
+    planned_time_s: float | None = None,
+    ideal_cycle_time_s: float | None = None,
 ) -> str:
     """A real, reproducible CSV rendering of one OEEReport - calling this
     twice with the same report and range/filters always returns the exact
     same string, byte for byte."""
-    return _render_csv(OEE_FIELD_ORDER, asdict(report), source_id=source_id, start_ms=start_ms, end_ms=end_ms, filters=filters)
+    return _render_csv(OEE_FIELD_ORDER, _oee_row(report, planned_time_s, ideal_cycle_time_s), source_id=source_id, start_ms=start_ms, end_ms=end_ms, filters=filters)
 
 
 def export_availability_csv(
@@ -276,6 +287,8 @@ def export_oee_html(
     start_ms: int,
     end_ms: int,
     filters: dict[str, str] | None = None,
+    planned_time_s: float | None = None,
+    ideal_cycle_time_s: float | None = None,
 ) -> str:
     """A real, reproducible, self-contained HTML rendering of one
     OEEReport for viewing in a browser - a bar chart of its own real
@@ -294,7 +307,7 @@ def export_oee_html(
     return _render_html(
         title=f"OEE report - {source_id}",
         field_order=OEE_FIELD_ORDER,
-        row=asdict(report),
+        row=_oee_row(report, planned_time_s, ideal_cycle_time_s),
         chart_svg=chart,
         source_id=source_id,
         start_ms=start_ms,
