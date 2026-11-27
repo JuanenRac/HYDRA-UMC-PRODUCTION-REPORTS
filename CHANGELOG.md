@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A cut answer of the job dispatcher is a message:** a robot registry or a job list cut in the middle ended the report with an unhandled error instead of saying what could not be read.
+
 - **Reports follow the local clock of a named time zone:** a request takes `timezone` (an IANA name such as `Europe/Madrid`) and the scheduled reports take a `timezone` key, in place of the fixed offset. Days and shifts begin at local wall-clock hours, so the day a clock change happens is really 23 or 25 hours long and the report plans exactly that much time; the fixed offsets keep working unchanged, and giving both is refused. A new `tzdata` dependency carries the zone rules on systems without them.
 - **The timezone offset is limited to what exists:** `tzOffsetMinutes` of a request and `timezone_offset_minutes` of the scheduled reports must lie between -840 and 840 minutes (UTC-14 to UTC+14); a larger value is refused with the reason instead of moving the window by days.
 

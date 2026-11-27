@@ -19,6 +19,7 @@ the submission of a job to its last assignment, grouped by the cell of the robot
 """
 from __future__ import annotations
 
+import http.client
 import json
 import math
 import urllib.error
@@ -73,7 +74,7 @@ def robot_cells(base_url: str, token: str = "", timeout_s: float = 3.0) -> dict[
     try:
         with urllib.request.urlopen(request, timeout=timeout_s) as response:  # noqa: S310 - the URL is the operator's own setting
             raw = response.read(MAX_ROBOTS_BYTES + 1)
-    except (urllib.error.URLError, OSError, TimeoutError) as exc:
+    except (urllib.error.URLError, OSError, TimeoutError, http.client.HTTPException) as exc:
         raise CellMapError(f"the robot registry of the job dispatcher could not be read: {exc}") from exc
     if len(raw) > MAX_ROBOTS_BYTES:
         raise CellMapError("the robot registry of the job dispatcher is too large")
@@ -131,7 +132,7 @@ def dispatcher_jobs(base_url: str, token: str = "", timeout_s: float = 5.0) -> l
     try:
         with urllib.request.urlopen(request, timeout=timeout_s) as response:  # noqa: S310 - the URL is the operator's own setting
             raw = response.read(MAX_JOBS_BYTES + 1)
-    except (urllib.error.URLError, OSError, TimeoutError) as exc:
+    except (urllib.error.URLError, OSError, TimeoutError, http.client.HTTPException) as exc:
         raise CellMapError(f"the jobs of the job dispatcher could not be read: {exc}") from exc
     if len(raw) > MAX_JOBS_BYTES:
         raise CellMapError("the jobs of the job dispatcher are too many to read in one report")
