@@ -15,7 +15,7 @@ from unittest import mock
 
 from hydra_umc_production_reports import main as cli
 
-SECRET = "s3cret-0123456789-abcdefghij-0123456789"
+SAMPLE = "sample-0123456789-abcdefghij-0123456789"
 
 
 class SecretFileEncodingTests(unittest.TestCase):
@@ -23,9 +23,9 @@ class SecretFileEncodingTests(unittest.TestCase):
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
         self.bom = Path(folder.name, "bom.token")
-        self.bom.write_bytes(b"\xef\xbb\xbf" + SECRET.encode("ascii") + b"\r\n")  # what Notepad calls "UTF-8 with BOM"
+        self.bom.write_bytes(b"\xef\xbb\xbf" + SAMPLE.encode("ascii") + b"\r\n")  # what Notepad calls "UTF-8 with BOM"
         self.utf16 = Path(folder.name, "utf16.token")
-        self.utf16.write_bytes((SECRET + "\r\n").encode("utf-16"))  # what `>` of Windows PowerShell writes
+        self.utf16.write_bytes((SAMPLE + "\r\n").encode("utf-16"))  # what `>` of Windows PowerShell writes
 
     def _run(self, path: Path) -> tuple[int | None, list[str], str]:
         class Started(Exception):
@@ -47,7 +47,7 @@ class SecretFileEncodingTests(unittest.TestCase):
         return code, seen, errors.getvalue()
 
     def test_the_dispatcher_token_ignores_a_byte_order_mark(self) -> None:
-        self.assertEqual(self._run(self.bom)[1], [SECRET])
+        self.assertEqual(self._run(self.bom)[1], [SAMPLE])
 
     def test_the_dispatcher_token_refuses_another_encoding(self) -> None:
         code, seen, errors = self._run(self.utf16)
