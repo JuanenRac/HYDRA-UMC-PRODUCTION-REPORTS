@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented here.
 
+## [Unreleased]
+
+- **An exported OEE says how it was calculated:** the CSV and HTML of the OEE (also the scheduled ones) add `method` (`events` or `aggregate`), `plannedTimeS` and `idealCycleTimeS`; `exportVersion` is 3. A reader that counts columns by position must look at it.
+
 ## [0.2.3] - Named time zones, cut dispatcher answers and secret files with a byte order mark
 
 - **Token and password files saved with a byte order mark are read:** a file written by an editor of Windows as "UTF-8 with BOM" kept the mark in front of the secret, so the credential was refused or could not be sent in a header. The mark is dropped now; a file in another encoding (UTF-16) is refused with a clear message. The same holds for the identity key file of the server (shared module of the SDK).

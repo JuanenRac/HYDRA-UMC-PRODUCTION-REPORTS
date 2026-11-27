@@ -468,13 +468,16 @@ class Handler(HealthRouteMixin, MetricsHandlerMixin, BaseHTTPRequestHandler):
         if built is None:
             return
         report, start_ms, end_ms = built
+        planned_time_s, ideal_cycle_time_s = self._oee_inputs
         # `format=csv` (the default) or `format=html` - a real,
         # self-contained HTML rendering (embedded SVG bar chart, no
         # external JS/CSS) for viewing straight in a browser.
         if fmt == "html":
-            _write_html(self, 200, export_oee_html(report, source_id=params["sourceId"], start_ms=start_ms, end_ms=end_ms))
+            _write_html(self, 200, export_oee_html(report, source_id=params["sourceId"], start_ms=start_ms, end_ms=end_ms,
+                                                  planned_time_s=planned_time_s, ideal_cycle_time_s=ideal_cycle_time_s))
             return
-        _write_csv(self, 200, export_oee_csv(report, source_id=params["sourceId"], start_ms=start_ms, end_ms=end_ms))
+        _write_csv(self, 200, export_oee_csv(report, source_id=params["sourceId"], start_ms=start_ms, end_ms=end_ms,
+                                            planned_time_s=planned_time_s, ideal_cycle_time_s=ideal_cycle_time_s))
 
     def _build_availability_report(self, params: dict[str, str]):
         """Shared real query+compute for both the JSON and CSV-export

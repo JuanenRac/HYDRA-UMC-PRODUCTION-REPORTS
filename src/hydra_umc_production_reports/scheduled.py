@@ -21,6 +21,7 @@ import re
 import sys
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta, timezone
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -235,7 +236,8 @@ def run_schedule(
             )
 
         try:
-            emit("oee", oee_from_datalake(client, source_id=src.id, start_ms=start_ms, end_ms=end_ms, planned_time_s=planned, ideal_cycle_time_s=ideal), export_oee_csv, export_oee_html)
+            emit("oee", oee_from_datalake(client, source_id=src.id, start_ms=start_ms, end_ms=end_ms, planned_time_s=planned, ideal_cycle_time_s=ideal),
+                 partial(export_oee_csv, planned_time_s=planned, ideal_cycle_time_s=ideal), partial(export_oee_html, planned_time_s=planned, ideal_cycle_time_s=ideal))
         except (ReportError, DatalakeError, ValueError) as exc:
             errors.append({"sourceId": src.id, "report": "oee", "error": str(exc)})
         if src.availability_mode == "off":
