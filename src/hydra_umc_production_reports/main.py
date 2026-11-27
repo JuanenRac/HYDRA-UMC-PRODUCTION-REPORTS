@@ -169,10 +169,10 @@ def main(argv: list[str] | None = None) -> int:
     dispatcher_token = ""
     if args.job_dispatcher_token_file:
         try:
-            with open(args.job_dispatcher_token_file, encoding="utf-8") as handle:
+            with open(args.job_dispatcher_token_file, encoding="utf-8-sig") as handle:
                 dispatcher_token = handle.readline().strip()
-        except OSError as exc:
-            print(f"[production-reports] fatal: --job-dispatcher-token-file: {exc.strerror or type(exc).__name__}", file=sys.stderr)
+        except (OSError, UnicodeDecodeError) as exc:
+            print(f"[production-reports] fatal: --job-dispatcher-token-file: {getattr(exc, 'strerror', None) or type(exc).__name__}", file=sys.stderr)
             return 2
     server = ReportsServer(
         (args.addr, args.port),
